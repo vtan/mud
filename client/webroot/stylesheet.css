@@ -1,12 +1,23 @@
 @import url('https://fonts.googleapis.com/css2?family=Ubuntu:wght@400;700&display=swap');
 
-body, input {
+body, button, input {
   font-family: 'Ubuntu', sans-serif;
   font-size: 16px;
+  background-color: #404040;
+  color: #f0f0f0;
+}
+
+button, input {
+  border: 1px lightcoral solid;
+}
+
+button:focus, input:focus {
+  outline: 0 none;
+  box-shadow: 0 1px 1px lightcoral inset, 0 0 8px coral;
 }
 
 .mainContainer {
-  max-width: 800px;
+  max-width: 600px;
   height: 100vh;
   margin: 0 auto;
 
@@ -25,7 +36,7 @@ body, input {
 }
 
 .line.command {
-  background-color: #F3F3F3;
+  background-color: #505050;
 }
 
 .line .bold {
@@ -33,7 +44,7 @@ body, input {
 }
 
 .commandInput {
-  margin: 1rem 0;
+  margin: 1rem 0 2rem 0;
 }
 
 .commandInput input {
@@ -43,4 +54,21 @@ body, input {
 .loginForm {
   width: calc(min(100vw, 400px));
   margin: 4rem auto 0 auto;
+}
+
+.loginForm div {
+  display: flex;
+  align-items: baseline;
+  margin-bottom: 2rem;
+}
+
+.loginForm div input {
+  flex: 1 1 auto;
+  margin: 0 0.5rem;
+}
+
+.loginForm button {
+  display: block;
+  margin: 0 auto;
+  padding: 4px;
 }

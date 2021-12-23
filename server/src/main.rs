@@ -1,3 +1,4 @@
+mod event_writer;
 mod game_logic;
 mod game_state;
 mod id;
@@ -5,7 +6,7 @@ mod line;
 mod server_actor;
 mod server_websocket;
 
-use std::fs;
+use std::{fs, net::SocketAddr};
 
 use game_state::Room;
 use server_websocket::{handle_connection, ConnectQuery};
@@ -22,10 +23,10 @@ async fn main() {
         list.into_iter().map(|room| (room.id, room)).collect()
     };
 
-    let port = std::env::var("MUD_PORT")
+    let socket_address = std::env::var("MUD_ADDR")
         .ok()
-        .and_then(|str| str.parse::<u16>().ok())
-        .unwrap_or(8081);
+        .and_then(|str| str.parse::<SocketAddr>().ok())
+        .unwrap_or(([127, 0, 0, 1], 8081).into());
 
     let (actor_sender, actor_receiver) = mpsc::channel::<server_actor::Message>(4096);
     tokio::spawn(async { server_actor::run(actor_receiver, rooms).await });
@@ -38,5 +39,5 @@ async fn main() {
             ws.on_upgrade(|websocket| handle_connection(websocket, query, message_sender))
         });
 
-    warp::serve(routes).run(([127, 0, 0, 1], port)).await;
+    warp::serve(routes).run(socket_address).await;
 }

@@ -6,6 +6,7 @@ use serde::Serialize;
 use tokio::sync::mpsc;
 
 use crate::{
+    event_writer::EventWriter,
     game_logic,
     game_state::{GameState, Player, Room},
     id::Id,
@@ -33,15 +34,14 @@ pub struct PlayerEvent {
     lines: Vec<Line>,
 }
 
-struct PlayerState {
-    connection: mpsc::Sender<PlayerEvent>,
-}
-
 pub async fn run(mut messages: mpsc::Receiver<Message>, rooms: HashMap<Id<Room>, Room>) {
-    let mut players: HashMap<Id<Player>, _> = HashMap::new();
+    let mut connections: HashMap<Id<Player>, _> = HashMap::new();
     let mut game_state = GameState {
         players: HashMap::new(),
         rooms,
+    };
+    let mut event_writer = EventWriter {
+        lines: HashMap::new(),
     };
 
     debug!("Server loop starting");
@@ -53,40 +53,41 @@ pub async fn run(mut messages: mpsc::Receiver<Message>, rooms: HashMap<Id<Room>,
                 player_name,
                 connection,
             } => {
-                connection
-                    .send(PlayerEvent {
-                        lines: vec![format!("Welcome, {}!", player_name).into()],
-                    })
-                    .await
-                    .unwrap();
-                let player_state = PlayerState { connection };
-                players.insert(player_id, player_state);
+                connections.insert(player_id, connection);
                 let player = Player {
                     id: player_id,
                     name: player_name,
                     room_id: Id::new(0),
                 };
-                game_state.players.insert(player_id, player);
+                game_logic::on_player_connect(player, &mut event_writer, &mut game_state);
             }
             PlayerDisconnected { player_id } => {
-                players.remove(&player_id);
+                connections.remove(&player_id);
+                game_logic::on_player_disconnect(player_id, &mut event_writer, &mut game_state);
             }
             PlayerCommand { player_id, command } => {
-                let words: Vec<&str> = command.split_whitespace().collect();
-                let events = game_logic::on_command(player_id, words, &mut game_state);
-                future::try_join_all(
-                    events.iter().filter_map(|(player_id, lines)| {
-                        if let Some(connection) = players.get(player_id) {
-                            let event = PlayerEvent {
-                                lines: lines.clone(),
-                            };
-                            Some(connection.connection.send(event))
-                        } else {
-                            None
-                        }
-                    })
-                ).await.unwrap();
+                game_logic::on_command(player_id, &command, &mut event_writer, &mut game_state);
             }
         }
+        send_player_events(&connections, &mut event_writer).await;
     }
+}
+
+async fn send_player_events(
+    connections: &HashMap<Id<Player>, mpsc::Sender<PlayerEvent>>,
+    event_writer: &mut EventWriter
+) {
+    future::try_join_all(event_writer.lines.iter().filter_map(|(player_id, lines)| {
+        if let Some(connection) = connections.get(player_id) {
+            let event = PlayerEvent {
+                lines: lines.clone(),
+            };
+            Some(connection.send(event))
+        } else {
+            None
+        }
+    }))
+    .await
+    .unwrap();
+    event_writer.lines.clear();
 }

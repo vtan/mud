@@ -11,18 +11,22 @@ pub struct LineSpan {
     pub bold: Option<bool>,
 }
 
-impl From<&str> for Line {
-    fn from(text: &str) -> Line {
-        Line {
-            spans: vec![LineSpan { text: text.to_string(), bold: None }],
+impl LineSpan {
+    pub fn line(self) -> Line {
+        Line { spans: vec![self] }
+    }
+
+    pub fn bold(self) -> Self {
+        LineSpan {
+            text: self.text,
+            bold: Some(true),
         }
     }
 }
 
-impl From<String> for Line {
-    fn from(text: String) -> Line {
-        Line {
-            spans: vec![LineSpan { text, bold: None }],
-        }
+pub fn span(str: &str) -> LineSpan {
+    LineSpan {
+        text: str.to_string(),
+        bold: None,
     }
 }
