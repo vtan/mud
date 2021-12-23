@@ -2,6 +2,17 @@
   {
     "id": 0,
     "name": "First room",
-    "description": "This is the first room. There is nothing here."
+    "description": "This is the first room. There is nothing here.",
+    "exits": {
+      "north": 1
+    }
+  },
+  {
+    "id": 1,
+    "name": "Northern room",
+    "description": "It is very north here.",
+    "exits": {
+      "south": 0
+    }
   }
 ]

@@ -22,4 +22,5 @@ pub struct Room {
     pub id: Id<Room>,
     pub name: String,
     pub description: String,
+    pub exits: HashMap<String, Id<Room>>,
 }
