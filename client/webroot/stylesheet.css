@@ -1,0 +1,46 @@
+@import url('https://fonts.googleapis.com/css2?family=Ubuntu:wght@400;700&display=swap');
+
+body, input {
+  font-family: 'Ubuntu', sans-serif;
+  font-size: 16px;
+}
+
+.mainContainer {
+  max-width: 800px;
+  height: 100vh;
+  margin: 0 auto;
+
+  display: flex;
+  flex-direction: column;
+}
+
+.lineContainer {
+  flex: 1 1 auto;
+  margin-top: 1rem;
+  overflow: auto;
+}
+
+.line {
+  margin-bottom: 0.5rem;
+}
+
+.line.command {
+  background-color: #F3F3F3;
+}
+
+.line .bold {
+  font-weight: 700;
+}
+
+.commandInput {
+  margin: 1rem 0;
+}
+
+.commandInput input {
+  width: 100%;
+}
+
+.loginForm {
+  width: calc(min(100vw, 400px));
+  margin: 4rem auto 0 auto;
+}
