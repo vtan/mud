@@ -19,7 +19,7 @@ async fn main() {
 
     let rooms = {
         let list: Vec<Room> =
-            serde_json::from_str(&fs::read_to_string("data/rooms.json").unwrap()).unwrap();
+            serde_yaml::from_str(&fs::read_to_string("data/rooms.yaml").unwrap()).unwrap();
         list.into_iter().map(|room| (room.id, room)).collect()
     };
 

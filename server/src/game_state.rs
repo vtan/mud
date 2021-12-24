@@ -23,4 +23,12 @@ pub struct Room {
     pub name: String,
     pub description: String,
     pub exits: HashMap<String, Id<Room>>,
+    #[serde(default)]
+    pub objects: Vec<RoomObject>,
+}
+
+#[derive(Clone, Debug, Deserialize)]
+pub struct RoomObject {
+    pub name: String,
+    pub description: String,
 }

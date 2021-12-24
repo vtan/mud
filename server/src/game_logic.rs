@@ -1,3 +1,5 @@
+use lazy_static::lazy_static;
+
 use crate::{
     event_writer::EventWriter,
     game_state::{GameState, Player, Room},
@@ -5,23 +7,29 @@ use crate::{
     line::{line, span, Line, LineSpan},
 };
 
+lazy_static! {
+    static ref HELP_LINES: Vec<Line> = vec![
+        span("Commands:").bold().line(),
+        span("look").color("white").line().push(span(" – Look around or at something")),
+        span("north").color("white").line().push(span(", etc. – Move to another room")),
+        span("who").color("white").line().push(span(" – See who is online")),
+        span("help").color("white").line().push(span(" – You're looking at it")),
+    ];
+}
+
 pub fn on_player_connect(player: Player, writer: &mut EventWriter, state: &mut GameState) {
-    let Player {
-        id: player_id,
-        room_id,
-        ..
-    } = player;
+    let Player { id: player_id, room_id, .. } = player;
 
     writer.tell_many(
         player_id,
         &[
             span(&format!("Welcome, {}!", &player.name)).line(),
             line(vec![
-                span("Try the "),
+                span("Try to "),
                 span("look").color("white"),
-                span(" and "),
-                span("north").color("white"),
-                span(" commands."),
+                span(" around, or check the "),
+                span("help").color("white"),
+                span(" to get your bearings."),
             ]),
             span(&format_player_count(state.players.len() + 1)).line(),
         ],
@@ -60,25 +68,35 @@ pub fn on_command(
     command: &str,
     writer: &mut EventWriter,
     state: &mut GameState,
-) {
-    if let Some(player) = state.players.get(&player_id) {
-        let words: Vec<&str> = command.split_whitespace().collect();
+) -> Result<(), String> {
+    let mut words: Vec<&str> = command.split_whitespace().collect();
+    let command_head = words.get(0).ok_or("Empty command")?.to_ascii_lowercase();
+    words.remove(0);
+    let words = words;
 
-        if let ["look"] = words[..] {
-            if let Some(room) = state.rooms.get(&player.room_id) {
-                describe_room(player_id, room, writer, state);
-            }
-        } else if let ["who"] = words[..] {
+    let player = state.players.get(&player_id).ok_or("Self player not found")?;
+
+    match command_head.as_str() {
+        "look" => look(&player, words, writer, state),
+        "who" if words.is_empty() => {
             list_players(player_id, writer, state);
-        } else if let Some(exit_room_id) = words.get(0).and_then(|exit| {
-            state
+            Ok(())
+        }
+        "help" if words.is_empty() => {
+            writer.tell_many(player_id, &HELP_LINES);
+            Ok(())
+        }
+        potential_exit => {
+            if let Some(exit_room_id) = state
                 .rooms
                 .get(&player.room_id)
-                .and_then(|room| room.exits.get(&exit.to_string()).copied())
-        }) {
-            move_player(player_id, exit_room_id, words[0], writer, state);
-        } else {
-            writer.tell(player_id, span("Unknown command.").line());
+                .and_then(|room| room.exits.get(&potential_exit.to_string()).copied())
+            {
+                move_self(player_id, exit_room_id, potential_exit, writer, state)
+            } else {
+                writer.tell(player_id, span("Unknown command.").line());
+                Ok(())
+            }
         }
     }
 }
@@ -92,17 +110,13 @@ fn describe_room(self_id: Id<Player>, room: &Room, writer: &mut EventWriter, sta
             .players
             .values()
             .filter(|player| player.id != self_id && player.room_id == room.id)
-            .map(|player| player.name.clone())
+            .map(|player| span(&player.name).color("blue"))
             .collect::<Vec<_>>();
-        if !players.is_empty() {
-            lines.push(
-                span(&format!(
-                    "{} {} here.",
-                    and_list(&players),
-                    are(players.len())
-                ))
-                .line(),
-            );
+        match players.len() {
+            0 => (),
+            len => {
+                lines.push(line(and_list_span(players)).push(span(&format!(" {} here.", are(len)))))
+            }
         }
     }
     lines.push(if room.exits.is_empty() {
@@ -111,56 +125,95 @@ fn describe_room(self_id: Id<Player>, room: &Room, writer: &mut EventWriter, sta
         span("You can go ")
             .line()
             .extend(and_list_span(
-                room.exits
-                    .keys()
-                    .map(|s| span(s).color("blue"))
-                    .collect::<Vec<_>>(),
+                room.exits.keys().map(|s| span(s).color("blue")).collect::<Vec<_>>(),
             ))
             .push(span(" from here."))
     });
     writer.tell_many(self_id, &lines);
 }
 
-fn move_player(
+fn look(
+    player: &Player,
+    mut words: Vec<&str>,
+    writer: &mut EventWriter,
+    state: &GameState,
+) -> Result<(), String> {
+    let room = state.rooms.get(&player.room_id).ok_or("look: Room not found")?;
+
+    if words.is_empty() {
+        describe_room(player.id, room, writer, state);
+        tell_room_except(
+            span(&format!("{} looks around.", &player.name)).line(),
+            room.id,
+            player.id,
+            writer,
+            state,
+        );
+    } else {
+        if words[0].eq_ignore_ascii_case("at") {
+            words.remove(0);
+        }
+        let words = words;
+
+        let target_str = words.join(" ");
+        if let Some(object) =
+            room.objects.iter().find(|obj| obj.name.eq_ignore_ascii_case(&target_str))
+        {
+            writer.tell(player.id, span(&object.description).line());
+            tell_room_except(
+                span(&format!("{} looks at the {}.", &player.name, &object.name)).line(),
+                room.id,
+                player.id,
+                writer,
+                state,
+            );
+        } else {
+            writer.tell(player.id, span("You do not see that here.").line());
+        }
+    }
+    Ok(())
+}
+
+fn move_self(
     player_id: Id<Player>,
     to_room_id: Id<Room>,
     exit: &str,
     writer: &mut EventWriter,
     state: &mut GameState,
-) {
-    if let Some(to_room) = state.rooms.get(&to_room_id) {
-        if let Some(player) = state.players.get_mut(&player_id) {
-            let from_room_id = player.room_id;
-            let player_name = player.name.clone();
-            player.room_id = to_room_id;
+) -> Result<(), String> {
+    let to_room = state.rooms.get(&to_room_id).ok_or("move: Room not found")?;
+    let mut player = state.players.get_mut(&player_id).ok_or("move: Self player not found")?;
 
-            tell_room(
-                span(&format!("{} leaves {}.", &player_name, exit)).line(),
-                from_room_id,
-                writer,
-                state,
-            );
-            tell_room_except(
-                to_room
-                    .exits
-                    .iter()
-                    .find(|(_, rid)| **rid == from_room_id)
-                    .map_or(
-                        span(&format!("{} appears.", &player_name)),
-                        |(reverse_exit, _)| {
-                            span(&format!("{} arrives from {}.", &player_name, reverse_exit))
-                        },
-                    )
-                    .line(),
-                to_room_id,
-                player_id,
-                writer,
-                state,
-            );
+    let from_room_id = player.room_id;
+    let player_name = player.name.clone();
+    player.room_id = to_room_id;
 
-            describe_room(player_id, to_room, writer, state);
-        }
-    }
+    tell_room(
+        span(&format!("{} leaves {}.", &player_name, exit)).line(),
+        from_room_id,
+        writer,
+        state,
+    );
+    tell_room_except(
+        to_room
+            .exits
+            .iter()
+            .find(|(_, rid)| **rid == from_room_id)
+            .map_or(
+                span(&format!("{} appears.", &player_name)),
+                |(reverse_exit, _)| {
+                    span(&format!("{} arrives from {}.", &player_name, reverse_exit))
+                },
+            )
+            .line(),
+        to_room_id,
+        player_id,
+        writer,
+        state,
+    );
+
+    describe_room(player_id, to_room, writer, state);
+    Ok(())
 }
 
 fn format_player_count(count: usize) -> String {
@@ -174,12 +227,7 @@ fn format_player_count(count: usize) -> String {
 
 fn list_players(player_id: Id<Player>, writer: &mut EventWriter, state: &GameState) {
     let mut lines = vec![span(&format_player_count(state.players.len())).line()];
-    lines.extend(
-        state
-            .players
-            .values()
-            .map(|player| span(&player.name).line()),
-    );
+    lines.extend(state.players.values().map(|player| span(&player.name).line()));
     writer.tell_many(player_id, &lines)
 }
 

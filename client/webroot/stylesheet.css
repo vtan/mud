@@ -32,10 +32,13 @@ button:focus, input:focus {
 }
 
 .line {
-  margin-bottom: 0.5rem;
+  margin: 0.2rem 0;
+  padding: 0;
 }
 
 .line.command {
+  margin: 0.3rem 0;
+  padding: 0.1rem 0;
   background-color: #505050;
 }
 
@@ -44,7 +47,7 @@ button:focus, input:focus {
 }
 
 .line .white {
-  color: #fcfcfc;
+  color: #ffffff;
 }
 
 .line .blue {
@@ -72,7 +75,7 @@ button:focus, input:focus {
 
 .loginForm div input {
   flex: 1 1 auto;
-  margin: 0 0.5rem;
+  margin: 0 0.4rem;
 }
 
 .loginForm button {

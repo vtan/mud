@@ -1,0 +1,34 @@
+- id: 0
+  name: First room
+  description: This is the first room. There is nothing here.
+  exits:
+    north: 1
+    south: 2
+    east: 3
+
+- id: 1
+  name: Northern room
+  description: It is very north here.
+  exits:
+    south: 0
+
+- id: 2
+  name: The Red Room
+  description: Just testing.
+  exits:
+    north: 0
+    northeast: 3
+
+- id: 3
+  name: Temple of the Forgotten Frog Deity
+  description: >-
+    In the center of the room stands a large statue of a vaguely toadlike creature.
+    You can try and look at it.
+  exits:
+    west: 0
+    southwest: 2
+  objects:
+    - name: statue
+      description: >-
+        A looming statue made of dark grey stone.
+        The creature resembles a frog, except for its four greedy eyes and clawed limbs.
