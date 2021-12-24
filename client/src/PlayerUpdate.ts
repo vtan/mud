@@ -8,5 +8,6 @@ export interface Line {
 
 export interface LineSpan {
   text: string,
-  bold?: boolean
+  bold?: boolean,
+  color?: string,
 }

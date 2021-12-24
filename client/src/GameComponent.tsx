@@ -62,6 +62,9 @@ const LineComponent = (props: StoredLine) => {
         if (span.bold === true) {
           className += " bold";
         }
+        if (span.color) {
+          className += " " + span.color;
+        }
         return <span key={i} className={className}>{span.text}</span>
     })}
   </div>
