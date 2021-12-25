@@ -58,8 +58,73 @@
   exits:
     west: 0
     southwest: 2
+    south: 4
   objects:
     - name: statue
       description: >-
         A looming statue made of dark grey stone.
         The creature resembles a frog, except for its four greedy eyes and clawed limbs.
+
+- id: 4
+  name: Library
+  description:
+  - condition: { equals: [book, 0] }
+    description: >-
+      A large, crude stone table dominates this room.
+      Around the table there are decayed remains of wooden chairs, succumbed to rot long ago.
+      The walls of the library are lined with stone bookcases.
+  - condition: { equals: [book, 1] }
+    description: >-
+      A large, crude stone table dominates this room.
+      Around the table there are decayed remains of wooden chairs, succumbed to rot long ago.
+      The walls of the library are lined with stone bookcases.
+      One of them have slided away, giving way to a dark passageway to the east.
+  exits:
+    north: 3
+    east:
+      condition: { equals: [book, 1] }
+      to: 5
+  objects:
+    - name: table
+      description: >-
+        The stone table is empty, except for sporadic fine dust.
+        Perhaps the remains of parchments from aeons ago.
+    - name: chairs
+      aliases: [chair]
+      description: A few rotten pieces of wood.
+    - name: bookcase
+      aliases: [bookcases, case, cases, books]
+      description:
+      - condition: { equals: [book, 0] }
+        description: >-
+          The bookcases are filled with heavily decomposed books.
+          One of the books, however, is in an almost flawless condition.
+      - condition: { equals: [book, 1] }
+        description: >-
+          The bookcases are filled with heavily decomposed books.
+          One of the bookcases have slided away, giving way to a dark passageway to the east.
+    - name: flawless book
+      aliases: [book]
+      description: >-
+        The cover of this book is written in an ancient script unknown to you.
+        A disguised mechanism is attached to it from behind the bookcase.
+      commands:
+      - command: push
+        condition: { equals: [book, 0] }
+        statements:
+        - setRoomVar: [book, 1]
+        - resetRoomVarAfterTicks: [book, 30, "The bookshelf slides back."]
+        - tellSelf: "You push the book."
+        - tellOthers: "pushes a book on a bookshelf."
+        - tellRoom: "The bookcase slides away, giving way to a dark passageway to the east."
+    - name: mechanism
+      description: It looks like this mechanism can be triggered by pushing the book.
+
+- id: 5
+  name: Inner sanctum
+  description: There is so much gold here. So much.
+  objects:
+  - name: gold
+    description: Yes. So much gold.
+  exits:
+    west: 4

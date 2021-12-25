@@ -3,7 +3,7 @@ use lazy_static::lazy_static;
 use crate::{
     event_writer::EventWriter,
     game_state::{
-        Condition, GameState, Player, Room, RoomCommand, RoomObjectDescription, Statement,
+        Condition, GameState, Player, Room, RoomCommand, RoomDescription, RoomExit, Statement,
     },
     id::Id,
     line::{line, span, Line, LineSpan},
@@ -63,6 +63,19 @@ pub fn on_player_disconnect(
             writer,
             state,
         )
+    }
+}
+
+pub fn on_tick(writer: &mut EventWriter, state: &mut GameState) {
+    state.ticks += 1;
+
+    let remaining = state.scheduled_room_var_resets.split_off(&(state.ticks + 1));
+    let to_reset = state.scheduled_room_var_resets.clone();
+    state.scheduled_room_var_resets = remaining;
+
+    for (room_id, var, message) in to_reset.values() {
+        state.set_room_var(*room_id, var.to_string(), 0);
+        tell_room(span(message).line(), *room_id, writer, state);
     }
 }
 
@@ -129,12 +142,21 @@ fn resolve_room_specific_command<'a>(
     let room = state.rooms.get(&room_id).ok_or("room specific command: Room not found")?;
     let args_joined = args.join(" ");
 
-    if let Some(to_room_id) = room.exits.get(command) {
+    if let Some(to_room_id) = room.exits.get(command).and_then(|exit| match exit {
+        RoomExit::Constant(to_room_id) => Some(to_room_id),
+        RoomExit::Conditional { condition, to } => {
+            if eval_room_condition(&condition, room_id, state) {
+                Some(to)
+            } else {
+                None
+            }
+        }
+    }) {
         Ok(Some(RoomSpecificCommand::Exit { to_room_id: *to_room_id }))
     } else if let Some(room_command) = room
         .objects
         .iter()
-        .filter(|obj| obj.name == args_joined)
+        .filter(|obj| obj.matches(&args_joined))
         .flat_map(|obj| obj.commands.iter())
         .find(|room_command| {
             if room_command.command != command {
@@ -155,9 +177,21 @@ fn resolve_room_specific_command<'a>(
 fn eval_room_condition(condition: &Condition, room_id: Id<Room>, state: &GameState) -> bool {
     match condition {
         Condition::Equals(var, value) => state.get_room_var(room_id, var.to_string()) == *value,
-        Condition::NotEquals(var, value) => {
-            state.get_room_var(room_id, var.to_string()) != *value
-        }
+        Condition::NotEquals(var, value) => state.get_room_var(room_id, var.to_string()) != *value,
+    }
+}
+
+fn eval_room_description<'a>(
+    room_description: &'a RoomDescription,
+    room_id: Id<Room>,
+    state: &'a GameState,
+) -> Option<&'a String> {
+    match room_description {
+        RoomDescription::Constant(description) => Some(description),
+        RoomDescription::Conditional(branches) => branches
+            .iter()
+            .find(|branch| eval_room_condition(&branch.condition, room_id, state))
+            .map(|branch| &branch.description),
     }
 }
 
@@ -189,6 +223,11 @@ fn run_room_command(
             Statement::TellRoom(line) => {
                 tell_room(span(&line).line(), room_id, writer, state);
             }
+            Statement::ResetRoomVarAfterTicks(var, delay, message) => {
+                state
+                    .scheduled_room_var_resets
+                    .insert(state.ticks + delay, (room_id, var.clone(), message.clone()));
+            }
         }
     }
 }
@@ -196,7 +235,9 @@ fn run_room_command(
 fn describe_room(self_id: Id<Player>, room: &Room, writer: &mut EventWriter, state: &GameState) {
     let mut lines = Vec::new();
     lines.push(span(&room.name).bold().line());
-    lines.push(span(&room.description).line());
+    if let Some(line) = eval_room_description(&room.description, room.id, state) {
+        lines.push(span(line).line());
+    }
     {
         let players = state
             .players
@@ -211,16 +252,31 @@ fn describe_room(self_id: Id<Player>, room: &Room, writer: &mut EventWriter, sta
             }
         }
     }
+
+    let visible_exits = room
+        .exits
+        .iter()
+        .filter_map(|(direction, exit)| match exit {
+            RoomExit::Constant(_) => Some(direction),
+            RoomExit::Conditional { condition, .. } => {
+                if eval_room_condition(&condition, room.id, state) {
+                    Some(direction)
+                } else {
+                    None
+                }
+            }
+        })
+        .map(|direction| span(direction).color("blue"))
+        .collect();
     lines.push(if room.exits.is_empty() {
         span("There are no exits here.").line()
     } else {
         span("You can go ")
             .line()
-            .extend(and_list_span(
-                room.exits.keys().map(|s| span(s).color("blue")).collect::<Vec<_>>(),
-            ))
+            .extend(and_list_span(visible_exits))
             .push(span(" from here."))
     });
+
     writer.tell_many(self_id, &lines);
 }
 
@@ -248,17 +304,8 @@ fn look(
         let words = words;
 
         let target_str = words.join(" ");
-        if let Some(object) =
-            room.objects.iter().find(|obj| obj.name.eq_ignore_ascii_case(&target_str))
-        {
-            let description = match &object.description {
-                RoomObjectDescription::Constant(description) => Some(description),
-                RoomObjectDescription::Conditional(branches) => branches
-                    .iter()
-                    .find(|branch| eval_room_condition(&branch.condition, room.id, state))
-                    .map(|branch| &branch.description),
-            };
-            if let Some(line) = description {
+        if let Some(object) = room.objects.iter().find(|obj| obj.matches(&target_str)) {
+            if let Some(line) = eval_room_description(&object.description, room.id, state) {
                 writer.tell(player.id, span(line).line());
             }
             tell_room_except(
@@ -299,7 +346,10 @@ fn move_self(
         to_room
             .exits
             .iter()
-            .find(|(_, rid)| **rid == from_room_id)
+            .find(|(_, exit)| match exit {
+                RoomExit::Constant(to) => from_room_id == *to,
+                RoomExit::Conditional { to, .. } => from_room_id == *to,
+            })
             .map_or(
                 span(&format!("{} appears.", &player_name)),
                 |(reverse_exit, _)| {

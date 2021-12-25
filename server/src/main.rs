@@ -29,7 +29,10 @@ async fn main() {
         .unwrap_or(([127, 0, 0, 1], 8081).into());
 
     let (actor_sender, actor_receiver) = mpsc::channel::<server_actor::Message>(4096);
-    tokio::spawn(async { server_actor::run(actor_receiver, rooms).await });
+    {
+        let actor_sender = actor_sender.clone();
+        tokio::spawn(async move { server_actor::run(actor_receiver, actor_sender, rooms).await });
+    }
 
     let routes = warp::path!("api" / "ws")
         .and(warp::query::<ConnectQuery>())

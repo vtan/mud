@@ -1,9 +1,9 @@
-use std::collections::HashMap;
+use std::collections::{HashMap, BTreeMap};
 
 use futures_util::future;
 use log::{debug, warn};
 use serde::Serialize;
-use tokio::sync::mpsc;
+use tokio::{sync::mpsc, time};
 
 use crate::{
     event_writer::EventWriter,
@@ -27,6 +27,7 @@ pub enum Message {
         player_id: Id<Player>,
         command: String,
     },
+    Tick,
 }
 
 #[derive(Serialize, Debug)]
@@ -34,13 +35,32 @@ pub struct PlayerEvent {
     lines: Vec<Line>,
 }
 
-pub async fn run(mut messages: mpsc::Receiver<Message>, rooms: HashMap<Id<Room>, Room>) {
+pub async fn run(
+    mut messages: mpsc::Receiver<Message>,
+    self_sender: mpsc::Sender<Message>,
+    rooms: HashMap<Id<Room>, Room>,
+) {
+    use Message::*;
+
+    tokio::spawn(async move {
+        let mut interval = time::interval(time::Duration::from_secs(1));
+        loop {
+            interval.tick().await;
+            self_sender.send(Tick).await.unwrap();
+        }
+    });
+
     let mut connections: HashMap<Id<Player>, _> = HashMap::new();
-    let mut game_state = GameState { rooms, players: HashMap::new(), room_vars: HashMap::new() };
+    let mut game_state = GameState {
+        rooms,
+        ticks: 0,
+        players: HashMap::new(),
+        room_vars: HashMap::new(),
+        scheduled_room_var_resets: BTreeMap::new(),
+    };
     let mut event_writer = EventWriter { lines: HashMap::new() };
 
     debug!("Server loop starting");
-    use Message::*;
     while let Some(message) = messages.recv().await {
         match message {
             PlayerConnected { player_id, player_name, connection } => {
@@ -58,6 +78,9 @@ pub async fn run(mut messages: mpsc::Receiver<Message>, rooms: HashMap<Id<Room>,
                 {
                     warn!("Player command: {}", err);
                 }
+            }
+            Tick => {
+                game_logic::on_tick(&mut event_writer, &mut game_state);
             }
         }
         send_player_events(&connections, &mut event_writer).await;
