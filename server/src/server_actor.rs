@@ -36,7 +36,7 @@ pub struct PlayerEvent {
 
 pub async fn run(mut messages: mpsc::Receiver<Message>, rooms: HashMap<Id<Room>, Room>) {
     let mut connections: HashMap<Id<Player>, _> = HashMap::new();
-    let mut game_state = GameState { players: HashMap::new(), rooms };
+    let mut game_state = GameState { rooms, players: HashMap::new(), room_vars: HashMap::new() };
     let mut event_writer = EventWriter { lines: HashMap::new() };
 
     debug!("Server loop starting");

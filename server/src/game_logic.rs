@@ -2,7 +2,9 @@ use lazy_static::lazy_static;
 
 use crate::{
     event_writer::EventWriter,
-    game_state::{GameState, Player, Room},
+    game_state::{
+        Condition, GameState, Player, Room, RoomCommand, RoomObjectDescription, Statement,
+    },
     id::Id,
     line::{line, span, Line, LineSpan},
 };
@@ -14,6 +16,7 @@ lazy_static! {
         span("north").color("white").line().push(span(", etc. – Move to another room")),
         span("who").color("white").line().push(span(" – See who is online")),
         span("help").color("white").line().push(span(" – You're looking at it")),
+        span("There are also special commands for interacting with specific rooms, or objects in there.").line(),
     ];
 }
 
@@ -63,6 +66,11 @@ pub fn on_player_disconnect(
     }
 }
 
+enum RoomSpecificCommand<'a> {
+    Exit { to_room_id: Id<Room> },
+    RoomCommand { room_command: &'a RoomCommand },
+}
+
 pub fn on_command(
     player_id: Id<Player>,
     command: &str,
@@ -86,16 +94,100 @@ pub fn on_command(
             writer.tell_many(player_id, &HELP_LINES);
             Ok(())
         }
-        potential_exit => {
-            if let Some(exit_room_id) = state
-                .rooms
-                .get(&player.room_id)
-                .and_then(|room| room.exits.get(&potential_exit.to_string()).copied())
-            {
-                move_self(player_id, exit_room_id, potential_exit, writer, state)
+        other_command => {
+            let room_specific_command =
+                resolve_room_specific_command(other_command, words, player.room_id, state)?;
+            match room_specific_command {
+                Some(RoomSpecificCommand::Exit { to_room_id }) => {
+                    move_self(player_id, to_room_id, other_command, writer, state)
+                }
+                Some(RoomSpecificCommand::RoomCommand { room_command }) => {
+                    run_room_command(
+                        &room_command.clone(),
+                        player_id,
+                        player.room_id,
+                        writer,
+                        state,
+                    );
+                    Ok(())
+                }
+                None => {
+                    writer.tell(player_id, span("Unknown command.").line());
+                    Ok(())
+                }
+            }
+        }
+    }
+}
+
+fn resolve_room_specific_command<'a>(
+    command: &str,
+    args: Vec<&str>,
+    room_id: Id<Room>,
+    state: &'a GameState,
+) -> Result<Option<RoomSpecificCommand<'a>>, String> {
+    let room = state.rooms.get(&room_id).ok_or("room specific command: Room not found")?;
+    let args_joined = args.join(" ");
+
+    if let Some(to_room_id) = room.exits.get(command) {
+        Ok(Some(RoomSpecificCommand::Exit { to_room_id: *to_room_id }))
+    } else if let Some(room_command) = room
+        .objects
+        .iter()
+        .filter(|obj| obj.name == args_joined)
+        .flat_map(|obj| obj.commands.iter())
+        .find(|room_command| {
+            if room_command.command != command {
+                false
+            } else if let Some(cond) = &room_command.condition {
+                eval_room_condition(&cond, room_id, state)
             } else {
-                writer.tell(player_id, span("Unknown command.").line());
-                Ok(())
+                true
+            }
+        })
+    {
+        Ok(Some(RoomSpecificCommand::RoomCommand { room_command }))
+    } else {
+        Ok(None)
+    }
+}
+
+fn eval_room_condition(condition: &Condition, room_id: Id<Room>, state: &GameState) -> bool {
+    match condition {
+        Condition::Equals(var, value) => state.get_room_var(room_id, var.to_string()) == *value,
+        Condition::NotEquals(var, value) => {
+            state.get_room_var(room_id, var.to_string()) != *value
+        }
+    }
+}
+
+fn run_room_command(
+    room_command: &RoomCommand,
+    self_id: Id<Player>,
+    room_id: Id<Room>,
+    writer: &mut EventWriter,
+    state: &mut GameState,
+) {
+    for statement in &room_command.statements {
+        match statement {
+            Statement::SetRoomVar(var, value) => {
+                state.set_room_var(room_id, var.to_string(), *value);
+            }
+            Statement::TellSelf(line) => {
+                writer.tell(self_id, span(&line).line());
+            }
+            Statement::TellOthers(line) => {
+                let player_name = state.players.get(&self_id).map_or("", |p| &p.name);
+                tell_room_except(
+                    span(&format!("{} {}", player_name, line)).line(),
+                    room_id,
+                    self_id,
+                    writer,
+                    state,
+                );
+            }
+            Statement::TellRoom(line) => {
+                tell_room(span(&line).line(), room_id, writer, state);
             }
         }
     }
@@ -159,7 +251,16 @@ fn look(
         if let Some(object) =
             room.objects.iter().find(|obj| obj.name.eq_ignore_ascii_case(&target_str))
         {
-            writer.tell(player.id, span(&object.description).line());
+            let description = match &object.description {
+                RoomObjectDescription::Constant(description) => Some(description),
+                RoomObjectDescription::Conditional(branches) => branches
+                    .iter()
+                    .find(|branch| eval_room_condition(&branch.condition, room.id, state))
+                    .map(|branch| &branch.description),
+            };
+            if let Some(line) = description {
+                writer.tell(player.id, span(line).line());
+            }
             tell_room_except(
                 span(&format!("{} looks at the {}.", &player.name, &object.name)).line(),
                 room.id,

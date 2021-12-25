@@ -8,9 +8,40 @@
 
 - id: 1
   name: Northern room
-  description: It is very north here.
+  description: It is very north here. There is an orb in the middle of the room.
   exits:
     south: 0
+  objects:
+  - name: orb
+    description:
+    - condition: { equals: [orb, 0] }
+      description: The wonrdous Tri-State Orb of Testing is glowing red, inviting you to ponder it.
+    - condition: { equals: [orb, 1] }
+      description: The wonrdous Tri-State Orb of Testing is glowing green, inviting you to ponder it.
+    - condition: { equals: [orb, 2] }
+      description: The wonrdous Tri-State Orb of Testing is glowing blue, inviting you to ponder it.
+    commands:
+    - command: ponder
+      condition: { equals: [orb, 0] }
+      statements:
+      - setRoomVar: [orb, 1]
+      - tellSelf: "You ponder the orb thoroughly."
+      - tellOthers: "ponders the orb."
+      - tellRoom: "The orb flashes and turns emerald green."
+    - command: ponder
+      condition: { equals: [orb, 1] }
+      statements:
+      - setRoomVar: [orb, 2]
+      - tellSelf: "You ponder the orb thoroughly."
+      - tellOthers: "ponders the orb."
+      - tellRoom: "The orb flashes and turns azure blue."
+    - command: ponder
+      condition: { equals: [orb, 2] }
+      statements:
+      - setRoomVar: [orb, 0]
+      - tellSelf: "You ponder the orb thoroughly."
+      - tellOthers: "ponders the orb."
+      - tellRoom: "The orb flashes and turns crimson red."
 
 - id: 2
   name: The Red Room
