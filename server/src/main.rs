@@ -1,10 +1,14 @@
 mod event_writer;
+mod game_chat;
+mod game_help;
 mod game_logic;
+mod game_room;
 mod game_state;
 mod id;
 mod line;
 mod server_actor;
 mod server_websocket;
+mod text_util;
 
 use std::{fs, net::SocketAddr};
 

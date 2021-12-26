@@ -1,6 +1,10 @@
 use std::collections::HashMap;
 
-use crate::{game_state::Player, id::Id, line::Line};
+use crate::{
+    game_state::{GameState, Player, Room},
+    id::Id,
+    line::Line,
+};
 
 pub struct EventWriter {
     pub lines: HashMap<Id<Player>, Vec<Line>>,
@@ -21,5 +25,27 @@ impl EventWriter {
         } else {
             self.lines.insert(player_id, lines.to_vec());
         }
+    }
+
+    pub fn tell_room(&mut self, line: Line, room_id: Id<Room>, state: &GameState) {
+        state.players.values().for_each(|player| {
+            if player.room_id == room_id {
+                self.tell(player.id, line.clone());
+            }
+        })
+    }
+
+    pub fn tell_room_except(
+        &mut self,
+        line: Line,
+        room_id: Id<Room>,
+        except: Id<Player>,
+        state: &GameState,
+    ) {
+        state.players.values().for_each(|player| {
+            if player.id != except && player.room_id == room_id {
+                self.tell(player.id, line.clone());
+            }
+        })
     }
 }

@@ -44,6 +44,16 @@ pub struct Room {
     pub objects: Vec<RoomObject>,
 }
 
+impl Room {
+    pub fn exit_direction_to(&self, room_id: Id<Room>) -> Option<&str> {
+        self.exits.iter().find_map(|(direction, exit)| match exit {
+            RoomExit::Static(to) if room_id == *to => Some(direction.as_str()),
+            RoomExit::Conditional { to, .. } if room_id == *to => Some(direction.as_str()),
+            _ => None,
+        })
+    }
+}
+
 #[derive(Clone, Debug, Deserialize)]
 #[serde(untagged)]
 pub enum RoomExit {
