@@ -1,3 +1,4 @@
+mod game_alias;
 mod event_writer;
 mod game_chat;
 mod game_help;

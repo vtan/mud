@@ -1,5 +1,6 @@
 use crate::{
     event_writer::EventWriter,
+    game_alias,
     game_chat::{self, ChatCommand},
     game_help,
     game_room::{
@@ -78,11 +79,11 @@ pub fn on_command(
     let mut words: Vec<&str> = command.split_whitespace().collect();
     let command_head = words.get(0).ok_or("Empty command")?.to_ascii_lowercase();
     words.remove(0);
-    let words = words;
+    let (command_head, words) = game_alias::resolve_aliases(&command_head, words);
 
     let player = state.players.get(&player_id).ok_or("Self player not found")?;
 
-    match command_head.as_str() {
+    match command_head {
         "look" => look(&player, words, writer, state),
         "say" if !words.is_empty() => {
             game_chat::chat(&player, words, ChatCommand::Say, writer, state);
@@ -98,6 +99,10 @@ pub fn on_command(
         }
         "help" if words.is_empty() => {
             game_help::help(player_id, writer);
+            Ok(())
+        }
+        "alias" if words.is_empty() => {
+            game_alias::alias(player_id, writer);
             Ok(())
         }
         other_command => {
