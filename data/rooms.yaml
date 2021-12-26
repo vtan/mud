@@ -15,11 +15,11 @@
   - name: orb
     description:
     - condition: { equals: [orb, 0] }
-      description: The wonrdous Tri-State Orb of Testing is glowing red, inviting you to ponder it.
+      fragment: The wonrdous Tri-State Orb of Testing is glowing red, inviting you to ponder it.
     - condition: { equals: [orb, 1] }
-      description: The wonrdous Tri-State Orb of Testing is glowing green, inviting you to ponder it.
+      fragment: The wonrdous Tri-State Orb of Testing is glowing green, inviting you to ponder it.
     - condition: { equals: [orb, 2] }
-      description: The wonrdous Tri-State Orb of Testing is glowing blue, inviting you to ponder it.
+      fragment: The wonrdous Tri-State Orb of Testing is glowing blue, inviting you to ponder it.
     commands:
     - command: ponder
       condition: { equals: [orb, 0] }
@@ -68,16 +68,12 @@
 - id: 4
   name: Library
   description:
-  - condition: { equals: [book, 0] }
-    description: >-
+  - fragment: >-
       A large, crude stone table dominates this room.
       Around the table there are decayed remains of wooden chairs, succumbed to rot long ago.
       The walls of the library are lined with stone bookcases.
   - condition: { equals: [book, 1] }
-    description: >-
-      A large, crude stone table dominates this room.
-      Around the table there are decayed remains of wooden chairs, succumbed to rot long ago.
-      The walls of the library are lined with stone bookcases.
+    fragment: >-
       One of them have slided away, giving way to a dark passageway to the east.
   exits:
     north: 3
@@ -96,11 +92,11 @@
       aliases: [bookcases, case, cases, books]
       description:
       - condition: { equals: [book, 0] }
-        description: >-
+        fragment: >-
           The bookcases are filled with heavily decomposed books.
           One of the books, however, is in an almost flawless condition.
       - condition: { equals: [book, 1] }
-        description: >-
+        fragment: >-
           The bookcases are filled with heavily decomposed books.
           One of the bookcases have slided away, giving way to a dark passageway to the east.
     - name: flawless book

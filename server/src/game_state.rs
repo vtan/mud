@@ -1,4 +1,4 @@
-use std::collections::{HashMap, BTreeMap};
+use std::collections::{BTreeMap, HashMap};
 
 use serde::Deserialize;
 
@@ -47,7 +47,7 @@ pub struct Room {
 #[derive(Clone, Debug, Deserialize)]
 #[serde(untagged)]
 pub enum RoomExit {
-    Constant(Id<Room>),
+    Static(Id<Room>),
     Conditional { condition: Condition, to: Id<Room> },
 }
 
@@ -71,14 +71,14 @@ impl RoomObject {
 #[derive(Clone, Debug, Deserialize)]
 #[serde(untagged)]
 pub enum RoomDescription {
-    Constant(String),
-    Conditional(Vec<ConditionalDescription>),
+    Static(String),
+    Dynamic(Vec<DynamicDescriptionFragment>),
 }
 
 #[derive(Clone, Debug, Deserialize)]
-pub struct ConditionalDescription {
-    pub condition: Condition,
-    pub description: String,
+pub struct DynamicDescriptionFragment {
+    pub fragment: String,
+    pub condition: Option<Condition>,
 }
 
 #[derive(Clone, Debug, Deserialize)]

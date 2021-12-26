@@ -163,7 +163,7 @@ fn resolve_room_specific_command<'a>(
     let args_joined = args.join(" ");
 
     if let Some(to_room_id) = room.exits.get(command).and_then(|exit| match exit {
-        RoomExit::Constant(to_room_id) => Some(to_room_id),
+        RoomExit::Static(to_room_id) => Some(to_room_id),
         RoomExit::Conditional { condition, to } => {
             if eval_room_condition(&condition, room_id, state) {
                 Some(to)
@@ -201,17 +201,34 @@ fn eval_room_condition(condition: &Condition, room_id: Id<Room>, state: &GameSta
     }
 }
 
-fn eval_room_description<'a>(
-    room_description: &'a RoomDescription,
+fn eval_room_description(
+    room_description: &RoomDescription,
     room_id: Id<Room>,
-    state: &'a GameState,
-) -> Option<&'a String> {
+    state: &GameState,
+) -> Option<String> {
     match room_description {
-        RoomDescription::Constant(description) => Some(description),
-        RoomDescription::Conditional(branches) => branches
-            .iter()
-            .find(|branch| eval_room_condition(&branch.condition, room_id, state))
-            .map(|branch| &branch.description),
+        RoomDescription::Static(description) => Some(description.clone()),
+        RoomDescription::Dynamic(branches) => {
+            let fragments = branches
+                .iter()
+                .filter_map(|branch| {
+                    if branch
+                        .condition
+                        .as_ref()
+                        .map_or(true, |cond| eval_room_condition(cond, room_id, state))
+                    {
+                        Some(branch.fragment.as_str())
+                    } else {
+                        None
+                    }
+                })
+                .collect::<Vec<&str>>();
+            if fragments.is_empty() {
+                None
+            } else {
+                Some(fragments.join(" "))
+            }
+        }
     }
 }
 
@@ -256,7 +273,7 @@ fn describe_room(self_id: Id<Player>, room: &Room, writer: &mut EventWriter, sta
     let mut lines = Vec::new();
     lines.push(span(&room.name).bold().line());
     if let Some(line) = eval_room_description(&room.description, room.id, state) {
-        lines.push(span(line).line());
+        lines.push(span(&line).line());
     }
     {
         let players = state
@@ -277,7 +294,7 @@ fn describe_room(self_id: Id<Player>, room: &Room, writer: &mut EventWriter, sta
         .exits
         .iter()
         .filter_map(|(direction, exit)| match exit {
-            RoomExit::Constant(_) => Some(direction),
+            RoomExit::Static(_) => Some(direction),
             RoomExit::Conditional { condition, .. } => {
                 if eval_room_condition(&condition, room.id, state) {
                     Some(direction)
@@ -326,7 +343,7 @@ fn look(
         let target_str = words.join(" ");
         if let Some(object) = room.objects.iter().find(|obj| obj.matches(&target_str)) {
             if let Some(line) = eval_room_description(&object.description, room.id, state) {
-                writer.tell(player.id, span(line).line());
+                writer.tell(player.id, span(&line).line());
             }
             tell_room_except(
                 span(&format!("{} looks at the {}.", &player.name, &object.name)).line(),
@@ -367,7 +384,7 @@ fn move_self(
             .exits
             .iter()
             .find(|(_, exit)| match exit {
-                RoomExit::Constant(to) => from_room_id == *to,
+                RoomExit::Static(to) => from_room_id == *to,
                 RoomExit::Conditional { to, .. } => from_room_id == *to,
             })
             .map_or(
@@ -425,7 +442,7 @@ fn chat(
                     words_joined = first_char.to_uppercase().collect::<String>() + chars.as_str()
                 }
             }
-            _ => ()
+            _ => (),
         }
 
         let last_char = words_joined.chars().last().unwrap_or(' ');
