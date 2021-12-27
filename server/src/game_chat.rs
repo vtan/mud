@@ -6,29 +6,16 @@ use regex::Regex;
 use crate::{
     event_writer::EventWriter,
     game_state::{GameState, Player},
-    line::{span, Line},
+    line::span,
 };
 
 lazy_static! {
-    static ref HELP_LINES: Vec<Line> = vec![
-        span("Commands:").bold().line(),
-        span("look").color("white").line().push(span(" – Look around or at something")),
-        span("north").color("white").line().push(span(", etc. – Move to another room")),
-        span("say").color("white").line().push(span(" – Say something to the others in the room")),
-        span("emote").color("white").line().push(span(" – Act out something")),
-        span("roll").color("white").line().push(span(" - Roll a die")),
-        span("who").color("white").line().push(span(" – See who is online")),
-        span("help").color("white").line().push(span(" – You're looking at it")),
-        span("There are also special commands for interacting with specific rooms, or objects in there.").line(),
-    ];
-
     static ref ILLEGAL_CHAT_REGEX: Regex = Regex::new(r"\p{Extended_Pictographic}").unwrap();
 }
 
 pub enum ChatCommand {
     Say,
     Emote,
-    Roll,
 }
 
 pub fn chat(
@@ -66,7 +53,6 @@ pub fn chat(
         let to_self = span(&match kind {
             ChatCommand::Say => format!("You say, \"{}\"", &words_joined),
             ChatCommand::Emote => format!("{} {}", &player.name, &words_joined),
-            ChatCommand::Roll => format!("{} {}", &player.name, &words_joined),
         })
         .color(COLOR)
         .line();
@@ -75,7 +61,6 @@ pub fn chat(
         let to_others = span(&match kind {
             ChatCommand::Say => format!("{} says, \"{}\"", &player.name, &words_joined),
             ChatCommand::Emote => format!("{} {}", &player.name, &words_joined),
-            ChatCommand::Roll => format!("{} {}", &player.name, &words_joined),
         })
         .color(COLOR)
         .line();

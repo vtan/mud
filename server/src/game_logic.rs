@@ -1,18 +1,41 @@
-use rand::{thread_rng, Rng};
 use crate::{
     event_writer::EventWriter,
     game_alias,
     game_chat::{self, ChatCommand},
     game_help,
     game_room::{
-        describe_room, eval_room_description, resolve_room_specific_command, run_room_command,
-        RoomSpecificCommand,
+        describe_room, eval_room_description, resolve_room_specific_command,
+        resolve_target_in_room, run_room_command, RoomSpecificCommand, RoomTarget,
     },
-    game_state::{GameState, Player, Room},
+    game_state::{GameState, MobInstance, Player, Room},
     id::Id,
     line::{line, span},
     text_util::{are, plural},
 };
+use rand::{thread_rng, Rng};
+
+pub fn initialize(state: &mut GameState) {
+    let room_ids_templates = state
+        .rooms
+        .values()
+        .flat_map(|room| {
+            let mob_templates = &state.mob_templates;
+            room.mob_spawns.iter().filter_map(move |spawn| {
+                mob_templates
+                    .get(&spawn.mob_template_id)
+                    .map(|template| (room.id, template.clone()))
+            })
+        })
+        .collect::<Vec<_>>();
+    state.mob_instances = room_ids_templates
+        .into_iter()
+        .map(|(room_id, template)| {
+            let id = state.get_next_mob_instance_id();
+            let instance = MobInstance { id, room_id, template };
+            (id, instance)
+        })
+        .collect();
+}
 
 pub fn on_player_connect(player: Player, writer: &mut EventWriter, state: &mut GameState) {
     let Player { id: player_id, room_id, .. } = player;
@@ -77,14 +100,14 @@ pub fn on_command(
     writer: &mut EventWriter,
     state: &mut GameState,
 ) -> Result<(), String> {
-    let mut words: Vec<&str> = command.split_whitespace().collect();
+    let mut words: Vec<&str> = game_alias::resolve_aliases(command.split_whitespace().collect());
     let command_head = words.get(0).ok_or("Empty command")?.to_ascii_lowercase();
     words.remove(0);
-    let (command_head, words) = game_alias::resolve_aliases(&command_head, words);
+    let words = words;
 
     let player = state.players.get(&player_id).ok_or("Self player not found")?;
 
-    match command_head {
+    match command_head.as_str() {
         "look" => look(&player, words, writer, state),
         "say" if !words.is_empty() => {
             game_chat::chat(&player, words, ChatCommand::Say, writer, state);
@@ -106,12 +129,8 @@ pub fn on_command(
             game_alias::alias(player_id, writer);
             Ok(())
         }
-        "roll" if words.is_empty() => {
-            let mut rng = thread_rng();
-            let roll: u32 = rng.gen_range(1..=6);
-            game_chat::chat(&player, vec!["rolled", "a", &roll.to_string()], ChatCommand::Roll, writer, state);
-            Ok(())
-        }
+        "roll" if words.is_empty() => roll_die(&player, writer, state),
+
         other_command => {
             let room_specific_command =
                 resolve_room_specific_command(other_command, words, player.room_id, state)?;
@@ -161,16 +180,30 @@ fn look(
         let words = words;
 
         let target_str = words.join(" ");
-        if let Some(object) = room.objects.iter().find(|obj| obj.matches(&target_str)) {
-            if let Some(line) = eval_room_description(&object.description, room.id, state) {
-                writer.tell(player.id, span(&line).line());
+        if let Some(target) = resolve_target_in_room(&target_str, room, state) {
+            match target {
+                RoomTarget::RoomObject { room_object: obj } => {
+                    if let Some(desc) = eval_room_description(&obj.description, room.id, state) {
+                        writer.tell(player.id, span(&desc).line());
+                    }
+                    writer.tell_room_except(
+                        span(&format!("{} looks at the {}.", &player.name, &obj.name)).line(),
+                        room.id,
+                        player.id,
+                        state,
+                    );
+                }
+                RoomTarget::MobInstance { mob_instance } => {
+                    let mob = &mob_instance.template;
+                    writer.tell(player.id, span(&mob.description).line());
+                    writer.tell_room_except(
+                        span(&format!("{} looks at the {}.", &player.name, &mob.name)).line(),
+                        room.id,
+                        player.id,
+                        state,
+                    );
+                }
             }
-            writer.tell_room_except(
-                span(&format!("{} looks at the {}.", &player.name, &object.name)).line(),
-                room.id,
-                player.id,
-                state,
-            );
         } else {
             writer.tell(player.id, span("You do not see that here.").line());
         }
@@ -226,4 +259,15 @@ fn list_players(player_id: Id<Player>, writer: &mut EventWriter, state: &GameSta
     let mut lines = vec![span(&format_player_count(state.players.len())).line()];
     lines.extend(state.players.values().map(|player| span(&player.name).line()));
     writer.tell_many(player_id, &lines)
+}
+
+fn roll_die(player: &Player, writer: &mut EventWriter, state: &GameState) -> Result<(), String> {
+    let mut rng = thread_rng();
+    let roll: u32 = rng.gen_range(1..=6);
+    writer.tell_room(
+        span(&format!("{} rolled a {}.", &player.name, roll.to_string())).line(),
+        player.room_id,
+        state,
+    );
+    Ok(())
 }

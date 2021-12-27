@@ -1,12 +1,41 @@
 use crate::{
     event_writer::EventWriter,
     game_state::{
-        Condition, GameState, Player, Room, RoomCommand, RoomDescription, RoomExit, Statement,
+        Condition, GameState, MobInstance, Player, Room, RoomCommand, RoomDescription, RoomExit,
+        RoomObject, Statement,
     },
     id::Id,
-    line::{line, span},
-    text_util::{and_list_span, are},
+    line::span,
+    named::Named,
+    text_util::{and_span_vecs, and_spans},
 };
+
+pub enum RoomTarget<'a> {
+    RoomObject { room_object: &'a RoomObject },
+    MobInstance { mob_instance: &'a MobInstance },
+}
+
+pub fn resolve_target_in_room<'a>(
+    target: &str,
+    room: &'a Room,
+    state: &'a GameState,
+) -> Option<RoomTarget<'a>> {
+    use RoomTarget::*;
+
+    let mobs = state
+        .mob_instances
+        .values()
+        .filter(|mob_instance| mob_instance.template.matches(target))
+        .map(|mob_instance| MobInstance { mob_instance });
+
+    let room_objects = room
+        .objects
+        .iter()
+        .filter(|room_object| room_object.matches(target))
+        .map(|room_object| RoomObject { room_object });
+
+    mobs.chain(room_objects).nth(0)
+}
 
 pub enum RoomSpecificCommand<'a> {
     Exit { to_room_id: Id<Room> },
@@ -144,13 +173,16 @@ pub fn describe_room(
             .players
             .values()
             .filter(|player| player.id != self_id && player.room_id == room.id)
-            .map(|player| span(&player.name).color("blue"))
-            .collect::<Vec<_>>();
-        match players.len() {
-            0 => (),
-            len => {
-                lines.push(line(and_list_span(players)).push(span(&format!(" {} here.", are(len)))))
-            }
+            .map(|player| vec![span(&player.name).color("blue")]);
+        let mobs = state
+            .mob_instances
+            .values()
+            .filter(|mob| mob.room_id == room.id)
+            .map(|mob| vec![span("a "), span(&mob.template.name).color("orange")]);
+        let all = players.chain(mobs).collect::<Vec<_>>();
+        if !all.is_empty() {
+            let line = span("You see ").line().extend(and_span_vecs(all)).push(span(" here."));
+            lines.push(line);
         }
     }
 
@@ -174,7 +206,7 @@ pub fn describe_room(
     } else {
         span("You can go ")
             .line()
-            .extend(and_list_span(visible_exits))
+            .extend(and_spans(visible_exits))
             .push(span(" from here."))
     });
 

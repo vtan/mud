@@ -30,29 +30,16 @@ impl LineSpan {
     }
 
     pub fn bold(self) -> Self {
-        LineSpan {
-            text: self.text,
-            bold: Some(true),
-            color: self.color,
-        }
+        LineSpan { text: self.text, bold: Some(true), color: self.color }
     }
 
     pub fn color(self, color: &'static str) -> Self {
-        LineSpan {
-            text: self.text,
-            bold: self.bold,
-            color: Some(color),
-        }
-
+        LineSpan { text: self.text, bold: self.bold, color: Some(color) }
     }
 }
 
 pub fn span(str: &str) -> LineSpan {
-    LineSpan {
-        text: str.to_string(),
-        bold: None,
-        color: None,
-    }
+    LineSpan { text: str.to_string(), bold: None, color: None }
 }
 
 pub fn line(spans: Vec<LineSpan>) -> Line {
