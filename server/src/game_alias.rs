@@ -29,28 +29,14 @@ lazy_static! {
         .collect::<Vec<_>>();
 }
 
-pub fn resolve_aliases<'a>(
-    mut command: &'a str,
-    mut args: Vec<&'a str>,
-) -> (&'a str, Vec<&'a str>) {
-    if let Some(stripped) = command.strip_prefix("\"") {
-        command = "\"";
-        if !stripped.is_empty() {
-            args.insert(0, stripped);
-        }
-    } else if let Some(stripped) = command.strip_prefix("*") {
-        command = ":";
-        if !stripped.is_empty() {
-            args.insert(0, stripped);
-        }
-    }
+pub fn resolve_aliases(mut words: Vec<&str>) -> Vec<&str> {
     for (alias, resolution) in ALIASES {
-        if command == *alias {
-            command = resolution;
-            return (command, args);
+        if words[0] == *alias {
+            words[0] = resolution;
+            return words;
         }
     }
-    return (command, args);
+    words
 }
 
 pub fn alias(player_id: Id<Player>, writer: &mut EventWriter) {
