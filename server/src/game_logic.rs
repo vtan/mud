@@ -1,3 +1,4 @@
+use rand::{thread_rng, Rng};
 use crate::{
     event_writer::EventWriter,
     game_alias,
@@ -103,6 +104,12 @@ pub fn on_command(
         }
         "alias" if words.is_empty() => {
             game_alias::alias(player_id, writer);
+            Ok(())
+        }
+        "roll" if words.is_empty() => {
+            let mut rng = thread_rng();
+            let roll: u32 = rng.gen_range(1..=6);
+            game_chat::chat(&player, vec!["rolled", "a", &roll.to_string()], ChatCommand::Roll, writer, state);
             Ok(())
         }
         other_command => {
