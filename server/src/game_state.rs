@@ -61,6 +61,7 @@ pub struct Player {
     pub id: Id<Player>,
     pub name: String,
     pub room_id: Id<Room>,
+    pub attack_target: Option<Id<MobInstance>>,
 }
 
 #[derive(Clone, Debug, Deserialize)]
@@ -168,6 +169,7 @@ pub struct MobTemplate {
     #[serde(default)]
     pub aliases: Vec<String>,
     pub description: String,
+    pub max_hp: i32,
 }
 
 impl Named for MobTemplate {
@@ -185,4 +187,5 @@ pub struct MobInstance {
     pub id: Id<MobInstance>,
     pub room_id: Id<Room>,
     pub template: MobTemplate,
+    pub hp: i32,
 }

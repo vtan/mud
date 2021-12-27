@@ -51,6 +51,7 @@
     northeast: 3
   mobSpawns:
   - mobTemplateId: 0
+  - mobTemplateId: 1
 
 - id: 3
   name: Temple of the Forgotten Frog Deity
@@ -128,3 +129,5 @@
     description: Yes. So much gold.
   exits:
     west: 4
+  mobSpawns:
+  - mobTemplateId: 2

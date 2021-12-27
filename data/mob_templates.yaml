@@ -1,7 +1,15 @@
 - id: 0
   name: skeleton
   description: A reanimated skeleton wandering mindlessly and staring with empty sockets.
+  maxHp: 40
 
 - id: 1
   name: ghost
   description: A translucent humanoid figure with a chilly aura.
+  maxHp: 65
+
+- id: 2
+  name: young red dragon
+  aliases: [dragon, red dragon]
+  description: A large serpentine creature with blood red scales and a smoldering snout.
+  maxHp: 400

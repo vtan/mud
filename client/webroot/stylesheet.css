@@ -62,6 +62,10 @@ button:focus, input:focus {
   color: #ffa000;
 }
 
+.line .red {
+  color: #ff4040;
+}
+
 .commandInput {
   margin: 1rem 0 2rem 0;
 }

@@ -76,6 +76,7 @@ pub fn on_player_disconnect(
 
 pub fn on_tick(writer: &mut EventWriter, state: &mut GameState) {
     state.ticks += 1;
+    game_combat::deal_player_damage(writer, state);
     {
         let remaining = state.scheduled_room_var_resets.split_off(&(state.ticks + 1));
         let to_reset = state.scheduled_room_var_resets.clone();
@@ -125,10 +126,7 @@ pub fn on_command(
 
     match command_head.as_str() {
         "look" => look(&player, words, writer, state),
-        "kill" => {
-            let Player { id, name, room_id } = player;
-            game_combat::kill(*id, &name.clone(), *room_id, words, writer, state)
-        }
+        "kill" => game_combat::kill(player.id, words, writer, state),
         "say" if !words.is_empty() => {
             game_chat::chat(&player, words, ChatCommand::Say, writer, state);
             Ok(())
@@ -200,7 +198,7 @@ fn look(
         let words = words;
 
         let target_str = words.join(" ");
-        if let Some(target) = resolve_target_in_room(&target_str, room, state) {
+        if let Some(target) = resolve_target_in_room(&target_str, room, &state.mob_instances) {
             match target {
                 RoomTarget::RoomObject { room_object: obj } => {
                     if let Some(desc) = eval_room_description(&obj.description, room.id, state) {
@@ -244,6 +242,11 @@ fn move_self(
     let from_room_id = player.room_id;
     let player_name = player.name.clone();
     player.room_id = to_room_id;
+
+    if player.attack_target.is_some() {
+        player.attack_target = None;
+        writer.tell(player_id, Line::str("You flee."));
+    }
 
     writer.tell_room(
         Line::str(&format!("{} leaves {}.", &player_name, exit)),
@@ -301,7 +304,8 @@ fn spawn_mobs(room_ids_templates: Vec<(Id<Room>, MobTemplate)>, state: &mut Game
     let GameState { mob_instances, mob_instance_id_source, .. } = state;
     mob_instances.extend(room_ids_templates.into_iter().map(|(room_id, template)| {
         let id = mob_instance_id_source.next();
-        let instance = MobInstance { id, room_id, template };
+        let hp = template.max_hp;
+        let instance = MobInstance { id, room_id, template, hp };
         (id, instance)
     }));
 }

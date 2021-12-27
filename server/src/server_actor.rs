@@ -61,7 +61,12 @@ pub async fn run(
         match message {
             PlayerConnected { player_id, player_name, connection } => {
                 connections.insert(player_id, connection);
-                let player = Player { id: player_id, name: player_name, room_id: Id::new(0) };
+                let player = Player {
+                    id: player_id,
+                    name: player_name,
+                    room_id: Id::new(0),
+                    attack_target: None,
+                };
                 game_logic::on_player_connect(player, &mut event_writer, &mut game_state);
             }
             PlayerDisconnected { player_id } => {

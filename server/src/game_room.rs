@@ -1,8 +1,8 @@
 use crate::{
     event_writer::EventWriter,
     game_state::{
-        Condition, GameState, MobInstance, Player, Room, RoomCommand, RoomDescription, RoomExit,
-        RoomObject, Statement,
+        Condition, GameState, IdMap, MobInstance, Player, Room, RoomCommand, RoomDescription,
+        RoomExit, RoomObject, Statement,
     },
     id::Id,
     line::{span, Line},
@@ -10,22 +10,23 @@ use crate::{
     text_util::{and_span_vecs, and_spans},
 };
 
-pub enum RoomTarget<'a> {
+pub enum RoomTarget<'a, 'b> {
     RoomObject { room_object: &'a RoomObject },
-    MobInstance { mob_instance: &'a MobInstance },
+    MobInstance { mob_instance: &'b MobInstance },
 }
 
-pub fn resolve_target_in_room<'a>(
+pub fn resolve_target_in_room<'a, 'b>(
     target: &str,
     room: &'a Room,
-    state: &'a GameState,
-) -> Option<RoomTarget<'a>> {
+    mob_instances: &'b IdMap<MobInstance>,
+) -> Option<RoomTarget<'a, 'b>> {
     use RoomTarget::*;
 
-    let mobs = state
-        .mob_instances
+    let mobs = mob_instances
         .values()
-        .filter(|mob_instance| mob_instance.template.matches(target))
+        .filter(|mob_instance| {
+            mob_instance.room_id == room.id && mob_instance.template.matches(target)
+        })
         .map(|mob_instance| MobInstance { mob_instance });
 
     let room_objects = room
