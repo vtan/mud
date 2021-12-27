@@ -14,6 +14,7 @@ lazy_static! {
         span("north").color("white").line().push(span(", etc. – Move to another room")),
         span("say").color("white").line().push(span(" – Say something to the others in the room")),
         span("emote").color("white").line().push(span(" – Act out something")),
+        span("roll").color("white").line().push(span(" – Roll a die")),
         span("who").color("white").line().push(span(" – See who is online")),
         span("alias").color("white").line().push(span(" – List short aliases for commands")),
         span("help").color("white").line().push(span(" – You're looking at it")),

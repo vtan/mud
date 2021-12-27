@@ -6,7 +6,7 @@ use serde::Deserialize;
 use tokio::sync::mpsc;
 use warp::ws::{Message, WebSocket};
 
-use crate::{server_actor, id::Id};
+use crate::{id::Id, server_actor};
 
 static NEXT_PLAYER_ID: AtomicU64 = AtomicU64::new(0);
 
@@ -46,10 +46,7 @@ pub async fn handle_connection(
     while let Some(Ok(message)) = stream.next().await {
         if let Ok(text) = message.to_str() {
             actor_sender
-                .send(server_actor::Message::PlayerCommand {
-                    player_id,
-                    command: text.to_string(),
-                })
+                .send(server_actor::Message::PlayerCommand { player_id, command: text.to_string() })
                 .await
                 .unwrap();
         } else {

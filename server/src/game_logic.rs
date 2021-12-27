@@ -12,6 +12,7 @@ use crate::{
     line::{line, span},
     text_util::{are, plural},
 };
+use rand::{thread_rng, Rng};
 
 pub fn initialize(state: &mut GameState) {
     let room_ids_templates = state
@@ -128,6 +129,8 @@ pub fn on_command(
             game_alias::alias(player_id, writer);
             Ok(())
         }
+        "roll" if words.is_empty() => roll_die(&player, writer, state),
+
         other_command => {
             let room_specific_command =
                 resolve_room_specific_command(other_command, words, player.room_id, state)?;
@@ -256,4 +259,20 @@ fn list_players(player_id: Id<Player>, writer: &mut EventWriter, state: &GameSta
     let mut lines = vec![span(&format_player_count(state.players.len())).line()];
     lines.extend(state.players.values().map(|player| span(&player.name).line()));
     writer.tell_many(player_id, &lines)
+}
+
+fn roll_die(player: &Player, writer: &mut EventWriter, state: &GameState) -> Result<(), String> {
+    let mut rng = thread_rng();
+    let roll: u32 = rng.gen_range(1..=6);
+    writer.tell(
+        player.id,
+        span(&format!("You rolled a {}.", roll.to_string())).line(),
+    );
+    writer.tell_room_except(
+        span(&format!("{} rolled a {}.", &player.name, roll.to_string())).line(),
+        player.room_id,
+        player.id,
+        state,
+    );
+    Ok(())
 }

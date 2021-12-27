@@ -7,7 +7,7 @@ use crate::{
     id::Id,
     line::span,
     named::Named,
-    text_util::{and_spans, and_span_vecs},
+    text_util::{and_span_vecs, and_spans},
 };
 
 pub enum RoomTarget<'a> {
@@ -173,12 +173,12 @@ pub fn describe_room(
             .players
             .values()
             .filter(|player| player.id != self_id && player.room_id == room.id)
-            .map(|player| vec!(span(&player.name).color("blue")));
+            .map(|player| vec![span(&player.name).color("blue")]);
         let mobs = state
             .mob_instances
             .values()
             .filter(|mob| mob.room_id == room.id)
-            .map(|mob| vec!(span("a "), span(&mob.template.name).color("orange")));
+            .map(|mob| vec![span("a "), span(&mob.template.name).color("orange")]);
         let all = players.chain(mobs).collect::<Vec<_>>();
         if !all.is_empty() {
             let line = span("You see ").line().extend(and_span_vecs(all)).push(span(" here."));
