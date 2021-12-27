@@ -9,7 +9,7 @@ use crate::{
     },
     game_state::{GameState, MobInstance, MobTemplate, Player, Room},
     id::Id,
-    line::{line, span},
+    line::{span, Line},
     text_util::{are, plural},
 };
 use rand::{thread_rng, Rng};
@@ -36,15 +36,15 @@ pub fn on_player_connect(player: Player, writer: &mut EventWriter, state: &mut G
     writer.tell_many(
         player_id,
         &[
-            span(&format!("Welcome, {}!", &player.name)).line(),
-            line(vec![
+            Line::str(&format!("Welcome, {}!", &player.name)),
+            Line::spans(vec![
                 span("Try to "),
                 span("look").color("white"),
                 span(" around, or check the "),
                 span("help").color("white"),
                 span(" to get your bearings."),
             ]),
-            span(&format_player_count(state.players.len() + 1)).line(),
+            Line::str(&format_player_count(state.players.len() + 1)),
         ],
     );
     if let Some(room) = state.rooms.get(&room_id) {
@@ -52,7 +52,7 @@ pub fn on_player_connect(player: Player, writer: &mut EventWriter, state: &mut G
     }
 
     writer.tell_room(
-        span(&format!("{} appears.", &player.name)).line(),
+        Line::str(&format!("{} appears.", &player.name)),
         room_id,
         state,
     );
@@ -67,7 +67,7 @@ pub fn on_player_disconnect(
 ) {
     if let Some(player) = state.players.remove(&player_id) {
         writer.tell_room(
-            span(&format!("{} disappears.", player.name)).line(),
+            Line::str(&format!("{} disappears.", player.name)),
             player.room_id,
             state,
         )
@@ -83,7 +83,7 @@ pub fn on_tick(writer: &mut EventWriter, state: &mut GameState) {
 
         for (room_id, var, message) in to_reset.values() {
             state.set_room_var(*room_id, var.to_string(), 0);
-            writer.tell_room(span(message).line(), *room_id, state);
+            writer.tell_room(Line::str(message), *room_id, state);
         }
     }
     {
@@ -97,7 +97,7 @@ pub fn on_tick(writer: &mut EventWriter, state: &mut GameState) {
                 .filter_map(|(room_id, mob_template_id)| {
                     state.mob_templates.get(&mob_template_id).map(|template| {
                         writer.tell_room(
-                            span(&format!("A {} appears.", template.name)).line(),
+                            Line::str(&format!("A {} appears.", template.name)),
                             room_id,
                             state,
                         );
@@ -169,7 +169,7 @@ pub fn on_command(
                     Ok(())
                 }
                 None => {
-                    writer.tell(player_id, span("Unknown command.").line());
+                    writer.tell(player_id, Line::str("Unknown command."));
                     Ok(())
                 }
             }
@@ -188,7 +188,7 @@ fn look(
     if words.is_empty() {
         describe_room(player.id, room, writer, state);
         writer.tell_room_except(
-            span(&format!("{} looks around.", &player.name)).line(),
+            Line::str(&format!("{} looks around.", &player.name)),
             room.id,
             player.id,
             state,
@@ -204,10 +204,10 @@ fn look(
             match target {
                 RoomTarget::RoomObject { room_object: obj } => {
                     if let Some(desc) = eval_room_description(&obj.description, room.id, state) {
-                        writer.tell(player.id, span(&desc).line());
+                        writer.tell(player.id, Line::str(&desc));
                     }
                     writer.tell_room_except(
-                        span(&format!("{} looks at the {}.", &player.name, &obj.name)).line(),
+                        Line::str(&format!("{} looks at the {}.", &player.name, &obj.name)),
                         room.id,
                         player.id,
                         state,
@@ -215,9 +215,9 @@ fn look(
                 }
                 RoomTarget::MobInstance { mob_instance } => {
                     let mob = &mob_instance.template;
-                    writer.tell(player.id, span(&mob.description).line());
+                    writer.tell(player.id, Line::str(&mob.description));
                     writer.tell_room_except(
-                        span(&format!("{} looks at the {}.", &player.name, &mob.name)).line(),
+                        Line::str(&format!("{} looks at the {}.", &player.name, &mob.name)),
                         room.id,
                         player.id,
                         state,
@@ -225,7 +225,7 @@ fn look(
                 }
             }
         } else {
-            writer.tell(player.id, span("You do not see that here.").line());
+            writer.tell(player.id, Line::str("You do not see that here."));
         }
     }
     Ok(())
@@ -246,7 +246,7 @@ fn move_self(
     player.room_id = to_room_id;
 
     writer.tell_room(
-        span(&format!("{} leaves {}.", &player_name, exit)).line(),
+        Line::str(&format!("{} leaves {}.", &player_name, exit)),
         from_room_id,
         state,
     );
@@ -276,8 +276,8 @@ fn format_player_count(count: usize) -> String {
 }
 
 fn list_players(player_id: Id<Player>, writer: &mut EventWriter, state: &GameState) {
-    let mut lines = vec![span(&format_player_count(state.players.len())).line()];
-    lines.extend(state.players.values().map(|player| span(&player.name).line()));
+    let mut lines = vec![Line::str(&format_player_count(state.players.len()))];
+    lines.extend(state.players.values().map(|player| Line::str(&player.name)));
     writer.tell_many(player_id, &lines)
 }
 
@@ -286,10 +286,10 @@ fn roll_die(player: &Player, writer: &mut EventWriter, state: &GameState) -> Res
     let roll: u32 = rng.gen_range(1..=6);
     writer.tell(
         player.id,
-        span(&format!("You rolled a {}.", roll.to_string())).line(),
+        Line::str(&format!("You rolled a {}.", roll.to_string())),
     );
     writer.tell_room_except(
-        span(&format!("{} rolled a {}.", &player.name, roll.to_string())).line(),
+        Line::str(&format!("{} rolled a {}.", &player.name, roll.to_string())),
         player.room_id,
         player.id,
         state,

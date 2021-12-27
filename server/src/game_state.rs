@@ -2,7 +2,10 @@ use std::collections::{BTreeMap, HashMap};
 
 use serde::Deserialize;
 
-use crate::{id::{Id, IdSource}, named::Named};
+use crate::{
+    id::{Id, IdSource},
+    named::Named,
+};
 
 pub type IdMap<T> = HashMap<Id<T>, T>;
 

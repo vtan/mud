@@ -5,7 +5,7 @@ use crate::{
         RoomObject, Statement,
     },
     id::Id,
-    line::span,
+    line::{span, Line},
     named::Named,
     text_util::{and_span_vecs, and_spans},
 };
@@ -134,19 +134,19 @@ pub fn run_room_command(
                 state.set_room_var(room_id, var.to_string(), *value);
             }
             Statement::TellSelf(line) => {
-                writer.tell(self_id, span(&line).line());
+                writer.tell(self_id, Line::str(&line));
             }
             Statement::TellOthers(line) => {
                 let player_name = state.players.get(&self_id).map_or("", |p| &p.name);
                 writer.tell_room_except(
-                    span(&format!("{} {}", player_name, line)).line(),
+                    Line::str(&format!("{} {}", player_name, line)),
                     room_id,
                     self_id,
                     state,
                 );
             }
             Statement::TellRoom(line) => {
-                writer.tell_room(span(&line).line(), room_id, state);
+                writer.tell_room(Line::str(&line), room_id, state);
             }
             Statement::ResetRoomVarAfterTicks(var, delay, message) => {
                 state
@@ -166,7 +166,7 @@ pub fn describe_room(
     let mut lines = Vec::new();
     lines.push(span(&room.name).bold().line());
     if let Some(line) = eval_room_description(&room.description, room.id, state) {
-        lines.push(span(&line).line());
+        lines.push(Line::str(&line));
     }
     {
         let players = state
@@ -181,7 +181,7 @@ pub fn describe_room(
             .map(|mob| vec![span("a "), span(&mob.template.name).color("orange")]);
         let all = players.chain(mobs).collect::<Vec<_>>();
         if !all.is_empty() {
-            let line = span("You see ").line().extend(and_span_vecs(all)).push(span(" here."));
+            let line = Line::str("You see ").extend(and_span_vecs(all)).push(span(" here."));
             lines.push(line);
         }
     }
@@ -202,10 +202,9 @@ pub fn describe_room(
         .map(|direction| span(direction).color("blue"))
         .collect();
     lines.push(if room.exits.is_empty() {
-        span("There are no exits here.").line()
+        Line::str("There are no exits here.")
     } else {
-        span("You can go ")
-            .line()
+        Line::str("You can go ")
             .extend(and_spans(visible_exits))
             .push(span(" from here."))
     });

@@ -6,6 +6,14 @@ pub struct Line {
 }
 
 impl Line {
+    pub fn spans(spans: Vec<LineSpan>) -> Line {
+        Line { spans }
+    }
+
+    pub fn str(str: &str) -> Line {
+        Line { spans: vec![span(str)] }
+    }
+
     pub fn push(mut self, span: LineSpan) -> Line {
         self.spans.push(span);
         self
@@ -40,8 +48,4 @@ impl LineSpan {
 
 pub fn span(str: &str) -> LineSpan {
     LineSpan { text: str.to_string(), bold: None, color: None }
-}
-
-pub fn line(spans: Vec<LineSpan>) -> Line {
-    Line { spans }
 }

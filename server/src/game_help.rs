@@ -19,7 +19,7 @@ lazy_static! {
         span("who").color("white").line().push(span(" – See who is online")),
         span("alias").color("white").line().push(span(" – List short aliases for commands")),
         span("help").color("white").line().push(span(" – You're looking at it")),
-        span("There are also special commands for interacting with specific rooms, or objects in there.").line(),
+        Line::str("There are also special commands for interacting with specific rooms, or objects in there."),
     ];
 }
 

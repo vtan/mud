@@ -6,7 +6,7 @@ use regex::Regex;
 use crate::{
     event_writer::EventWriter,
     game_state::{GameState, Player},
-    line::span,
+    line::{span, Line},
 };
 
 lazy_static! {
@@ -27,11 +27,11 @@ pub fn chat(
 ) {
     let mut words_joined = words.join(" ");
     if words_joined.len() > 128 {
-        writer.tell(player.id, span("That message is too long.").line());
+        writer.tell(player.id, Line::str("That message is too long."));
     } else if ILLEGAL_CHAT_REGEX.is_match(&words_joined) {
         writer.tell(
             player.id,
-            span("That message contains illegal characters.").line(),
+            Line::str("That message contains illegal characters."),
         );
     } else {
         match kind {

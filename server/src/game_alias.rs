@@ -1,9 +1,4 @@
-use crate::{
-    event_writer::EventWriter,
-    game_state::Player,
-    id::Id,
-    line::{span, Line},
-};
+use crate::{event_writer::EventWriter, game_state::Player, id::Id, line::Line};
 use lazy_static::lazy_static;
 
 static ALIASES: &[(&str, &str)] = &[
@@ -25,7 +20,7 @@ static ALIASES: &[(&str, &str)] = &[
 lazy_static! {
     static ref ALIAS_LINES: Vec<Line> = ALIASES
         .iter()
-        .map(|(alias, resolution)| span(&format!("{} → {}", alias, resolution)).line())
+        .map(|(alias, resolution)| Line::str(&format!("{} → {}", alias, resolution)))
         .collect::<Vec<_>>();
 }
 

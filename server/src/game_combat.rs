@@ -3,7 +3,7 @@ use crate::{
     game_room::{self, RoomTarget},
     game_state::{GameState, Player, Room},
     id::Id,
-    line::span,
+    line::{span, Line},
 };
 
 pub fn kill(
@@ -25,7 +25,7 @@ pub fn kill(
 
             writer.tell(
                 player_id,
-                span(&format!("You kill the {}.", mob_instance.template.name)).line(),
+                Line::str(&format!("You kill the {}.", mob_instance.template.name)),
             );
             writer.tell_room_except(
                 span(&format!(
@@ -42,10 +42,10 @@ pub fn kill(
             state.scheduled_mob_spawns.insert(respawn_at, (room_id, template_id));
         }
         Some(_) => {
-            writer.tell(player_id, span("You cannot kill that.").line());
+            writer.tell(player_id, Line::str("You cannot kill that."));
         }
         None => {
-            writer.tell(player_id, span("You do not see that here.").line());
+            writer.tell(player_id, Line::str("You do not see that here."));
         }
     }
     Ok(())
