@@ -1,4 +1,4 @@
-use std::collections::{HashMap, BTreeMap};
+use std::collections::HashMap;
 
 use futures_util::future;
 use log::{debug, warn};
@@ -8,7 +8,7 @@ use tokio::{sync::mpsc, time};
 use crate::{
     event_writer::EventWriter,
     game_logic,
-    game_state::{GameState, Player, Room},
+    game_state::{GameState, LoadedGameState, Player},
     id::Id,
     line::Line,
 };
@@ -38,7 +38,7 @@ pub struct PlayerEvent {
 pub async fn run(
     mut messages: mpsc::Receiver<Message>,
     self_sender: mpsc::Sender<Message>,
-    rooms: HashMap<Id<Room>, Room>,
+    loaded_game_state: LoadedGameState,
 ) {
     use Message::*;
 
@@ -51,14 +51,10 @@ pub async fn run(
     });
 
     let mut connections: HashMap<Id<Player>, _> = HashMap::new();
-    let mut game_state = GameState {
-        rooms,
-        ticks: 0,
-        players: HashMap::new(),
-        room_vars: HashMap::new(),
-        scheduled_room_var_resets: BTreeMap::new(),
-    };
+    let mut game_state = GameState::new(loaded_game_state);
     let mut event_writer = EventWriter { lines: HashMap::new() };
+
+    game_logic::initialize(&mut game_state);
 
     debug!("Server loop starting");
     while let Some(message) = messages.recv().await {

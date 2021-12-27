@@ -2,18 +2,42 @@ use std::collections::{BTreeMap, HashMap};
 
 use serde::Deserialize;
 
-use crate::id::Id;
+use crate::{id::Id, named::Named};
+
+pub type IdMap<T> = HashMap<Id<T>, T>;
+
+pub struct LoadedGameState {
+    pub rooms: IdMap<Room>,
+    pub mob_templates: IdMap<MobTemplate>,
+}
 
 #[derive(Clone, Debug)]
 pub struct GameState {
     pub ticks: u64,
-    pub players: HashMap<Id<Player>, Player>,
-    pub rooms: HashMap<Id<Room>, Room>,
+    pub players: IdMap<Player>,
+    pub rooms: IdMap<Room>,
     pub room_vars: HashMap<(Id<Room>, String), i32>,
     pub scheduled_room_var_resets: BTreeMap<u64, (Id<Room>, String, String)>,
+    pub mob_templates: IdMap<MobTemplate>,
+    pub mob_instances: IdMap<MobInstance>,
+    pub next_mob_instance_id: Id<MobInstance>,
 }
 
 impl GameState {
+    pub fn new(loaded_game_state: LoadedGameState) -> GameState {
+        let LoadedGameState { rooms, mob_templates } = loaded_game_state;
+        GameState {
+            rooms,
+            mob_templates,
+            ticks: 0,
+            players: HashMap::new(),
+            room_vars: HashMap::new(),
+            scheduled_room_var_resets: BTreeMap::new(),
+            mob_instances: HashMap::new(),
+            next_mob_instance_id: Id::new(0),
+        }
+    }
+
     pub fn get_room_var(&self, room_id: Id<Room>, var: String) -> i32 {
         *self.room_vars.get(&(room_id, var)).unwrap_or(&0)
     }
@@ -25,6 +49,12 @@ impl GameState {
             self.room_vars.insert((room_id, var), value);
         }
     }
+
+    pub fn get_next_mob_instance_id(&mut self) -> Id<MobInstance> {
+        let id = self.next_mob_instance_id;
+        self.next_mob_instance_id = Id::new(id.value + 1);
+        id
+    }
 }
 
 #[derive(Clone, Debug)]
@@ -35,6 +65,7 @@ pub struct Player {
 }
 
 #[derive(Clone, Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct Room {
     pub id: Id<Room>,
     pub name: String,
@@ -42,6 +73,8 @@ pub struct Room {
     pub exits: HashMap<String, RoomExit>,
     #[serde(default)]
     pub objects: Vec<RoomObject>,
+    #[serde(default)]
+    pub mob_spawns: Vec<MobSpawn>,
 }
 
 impl Room {
@@ -55,13 +88,14 @@ impl Room {
 }
 
 #[derive(Clone, Debug, Deserialize)]
-#[serde(untagged)]
+#[serde(untagged, rename_all = "camelCase")]
 pub enum RoomExit {
     Static(Id<Room>),
     Conditional { condition: Condition, to: Id<Room> },
 }
 
 #[derive(Clone, Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct RoomObject {
     pub name: String,
     #[serde(default)]
@@ -71,10 +105,13 @@ pub struct RoomObject {
     pub commands: Vec<RoomCommand>,
 }
 
-impl RoomObject {
-    pub fn matches(&self, str: &str) -> bool {
-        self.name.eq_ignore_ascii_case(str)
-            || self.aliases.iter().any(|alias| alias.eq_ignore_ascii_case(str))
+impl Named for RoomObject {
+    fn get_name(&self) -> &String {
+        &self.name
+    }
+
+    fn get_aliases(&self) -> &[String] {
+        &self.aliases
     }
 }
 
@@ -86,12 +123,14 @@ pub enum RoomDescription {
 }
 
 #[derive(Clone, Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct DynamicDescriptionFragment {
     pub fragment: String,
     pub condition: Option<Condition>,
 }
 
 #[derive(Clone, Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct RoomCommand {
     pub command: String,
     #[serde(default)]
@@ -114,4 +153,37 @@ pub enum Statement {
     TellSelf(String),
     TellOthers(String),
     TellRoom(String),
+}
+
+#[derive(Clone, Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct MobSpawn {
+    pub mob_template_id: Id<MobTemplate>,
+}
+
+#[derive(Clone, Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct MobTemplate {
+    pub id: Id<MobTemplate>,
+    pub name: String,
+    #[serde(default)]
+    pub aliases: Vec<String>,
+    pub description: String,
+}
+
+impl Named for MobTemplate {
+    fn get_name(&self) -> &String {
+        &self.name
+    }
+
+    fn get_aliases(&self) -> &[String] {
+        &self.aliases
+    }
+}
+
+#[derive(Clone, Debug)]
+pub struct MobInstance {
+    pub id: Id<MobInstance>,
+    pub room_id: Id<Room>,
+    pub template: MobTemplate,
 }

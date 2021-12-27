@@ -1,0 +1,7 @@
+- id: 0
+  name: skeleton
+  description: A reanimated skeleton wandering mindlessly and staring with empty sockets.
+
+- id: 1
+  name: ghost
+  description: A translucent humanoid figure with a chilly aura.

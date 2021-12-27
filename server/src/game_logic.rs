@@ -4,14 +4,37 @@ use crate::{
     game_chat::{self, ChatCommand},
     game_help,
     game_room::{
-        describe_room, eval_room_description, resolve_room_specific_command, run_room_command,
-        RoomSpecificCommand,
+        describe_room, eval_room_description, resolve_room_specific_command,
+        resolve_target_in_room, run_room_command, RoomSpecificCommand, RoomTarget,
     },
-    game_state::{GameState, Player, Room},
+    game_state::{GameState, MobInstance, Player, Room},
     id::Id,
     line::{line, span},
     text_util::{are, plural},
 };
+
+pub fn initialize(state: &mut GameState) {
+    let room_ids_templates = state
+        .rooms
+        .values()
+        .flat_map(|room| {
+            let mob_templates = &state.mob_templates;
+            room.mob_spawns.iter().filter_map(move |spawn| {
+                mob_templates
+                    .get(&spawn.mob_template_id)
+                    .map(|template| (room.id, template.clone()))
+            })
+        })
+        .collect::<Vec<_>>();
+    state.mob_instances = room_ids_templates
+        .into_iter()
+        .map(|(room_id, template)| {
+            let id = state.get_next_mob_instance_id();
+            let instance = MobInstance { id, room_id, template };
+            (id, instance)
+        })
+        .collect();
+}
 
 pub fn on_player_connect(player: Player, writer: &mut EventWriter, state: &mut GameState) {
     let Player { id: player_id, room_id, .. } = player;
@@ -154,16 +177,30 @@ fn look(
         let words = words;
 
         let target_str = words.join(" ");
-        if let Some(object) = room.objects.iter().find(|obj| obj.matches(&target_str)) {
-            if let Some(line) = eval_room_description(&object.description, room.id, state) {
-                writer.tell(player.id, span(&line).line());
+        if let Some(target) = resolve_target_in_room(&target_str, room, state) {
+            match target {
+                RoomTarget::RoomObject { room_object: obj } => {
+                    if let Some(desc) = eval_room_description(&obj.description, room.id, state) {
+                        writer.tell(player.id, span(&desc).line());
+                    }
+                    writer.tell_room_except(
+                        span(&format!("{} looks at the {}.", &player.name, &obj.name)).line(),
+                        room.id,
+                        player.id,
+                        state,
+                    );
+                }
+                RoomTarget::MobInstance { mob_instance } => {
+                    let mob = &mob_instance.template;
+                    writer.tell(player.id, span(&mob.description).line());
+                    writer.tell_room_except(
+                        span(&format!("{} looks at the {}.", &player.name, &mob.name)).line(),
+                        room.id,
+                        player.id,
+                        state,
+                    );
+                }
             }
-            writer.tell_room_except(
-                span(&format!("{} looks at the {}.", &player.name, &object.name)).line(),
-                room.id,
-                player.id,
-                state,
-            );
         } else {
             writer.tell(player.id, span("You do not see that here.").line());
         }

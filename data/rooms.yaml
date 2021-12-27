@@ -49,6 +49,8 @@
   exits:
     north: 0
     northeast: 3
+  mobSpawns:
+  - mobTemplateId: 0
 
 - id: 3
   name: Temple of the Forgotten Frog Deity
@@ -80,6 +82,8 @@
     east:
       condition: { equals: [book, 1] }
       to: 5
+  mobSpawns:
+    - mobTemplateId: 1
   objects:
     - name: table
       description: >-

@@ -5,25 +5,19 @@ use serde::Deserialize;
 
 #[derive(Debug)]
 pub struct Id<T> {
-    value: u64,
+    pub value: u64,
     phantom: PhantomData<T>,
 }
 
 impl<T> Id<T> {
     pub fn new(value: u64) -> Id<T> {
-        Id {
-            value,
-            phantom: PhantomData,
-        }
+        Id { value, phantom: PhantomData }
     }
 }
 
 impl<T> Clone for Id<T> {
     fn clone(&self) -> Self {
-        Self {
-            value: self.value,
-            phantom: self.phantom,
-        }
+        Self { value: self.value, phantom: self.phantom }
     }
 }
 
