@@ -264,9 +264,14 @@ fn list_players(player_id: Id<Player>, writer: &mut EventWriter, state: &GameSta
 fn roll_die(player: &Player, writer: &mut EventWriter, state: &GameState) -> Result<(), String> {
     let mut rng = thread_rng();
     let roll: u32 = rng.gen_range(1..=6);
-    writer.tell_room(
+    writer.tell(
+        player.id,
+        span(&format!("You rolled a {}.", roll.to_string())).line(),
+    );
+    writer.tell_room_except(
         span(&format!("{} rolled a {}.", &player.name, roll.to_string())).line(),
         player.room_id,
+        player.id,
         state,
     );
     Ok(())
