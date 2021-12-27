@@ -298,13 +298,10 @@ fn roll_die(player: &Player, writer: &mut EventWriter, state: &GameState) -> Res
 }
 
 fn spawn_mobs(room_ids_templates: Vec<(Id<Room>, MobTemplate)>, state: &mut GameState) {
-    let new_mobs = room_ids_templates
-        .into_iter()
-        .map(|(room_id, template)| {
-            let id = state.get_next_mob_instance_id();
-            let instance = MobInstance { id, room_id, template };
-            (id, instance)
-        })
-        .collect::<Vec<_>>();
-    state.mob_instances.extend(new_mobs);
+    let GameState { mob_instances, mob_instance_id_source, .. } = state;
+    mob_instances.extend(room_ids_templates.into_iter().map(|(room_id, template)| {
+        let id = mob_instance_id_source.next();
+        let instance = MobInstance { id, room_id, template };
+        (id, instance)
+    }));
 }

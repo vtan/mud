@@ -47,3 +47,27 @@ impl<'de, T> Deserialize<'de> for Id<T> {
         Ok(Id::new(u64::deserialize(deserializer)?))
     }
 }
+
+#[derive(Debug)]
+pub struct IdSource<T> {
+    next_id: u64,
+    phantom: PhantomData<T>,
+}
+
+impl<T> IdSource<T> {
+    pub fn new(first_id: u64) -> IdSource<T> {
+        IdSource { next_id: first_id, phantom: PhantomData }
+    }
+
+    pub fn next(&mut self) -> Id<T> {
+        let id = Id::new(self.next_id);
+        self.next_id += 1;
+        id
+    }
+}
+
+impl<T> Clone for IdSource<T> {
+    fn clone(&self) -> Self {
+        Self { next_id: self.next_id, phantom: self.phantom }
+    }
+}

@@ -2,7 +2,7 @@ use std::collections::{BTreeMap, HashMap};
 
 use serde::Deserialize;
 
-use crate::{id::Id, named::Named};
+use crate::{id::{Id, IdSource}, named::Named};
 
 pub type IdMap<T> = HashMap<Id<T>, T>;
 
@@ -20,7 +20,7 @@ pub struct GameState {
     pub scheduled_room_var_resets: BTreeMap<u64, (Id<Room>, String, String)>,
     pub mob_templates: IdMap<MobTemplate>,
     pub mob_instances: IdMap<MobInstance>,
-    pub next_mob_instance_id: Id<MobInstance>,
+    pub mob_instance_id_source: IdSource<MobInstance>,
     pub scheduled_mob_spawns: BTreeMap<u64, (Id<Room>, Id<MobTemplate>)>,
 }
 
@@ -35,7 +35,7 @@ impl GameState {
             room_vars: HashMap::new(),
             scheduled_room_var_resets: BTreeMap::new(),
             mob_instances: HashMap::new(),
-            next_mob_instance_id: Id::new(0),
+            mob_instance_id_source: IdSource::new(0),
             scheduled_mob_spawns: BTreeMap::new(),
         }
     }
@@ -50,12 +50,6 @@ impl GameState {
         } else {
             self.room_vars.insert((room_id, var), value);
         }
-    }
-
-    pub fn get_next_mob_instance_id(&mut self) -> Id<MobInstance> {
-        let id = self.next_mob_instance_id;
-        self.next_mob_instance_id = Id::new(id.value + 1);
-        id
     }
 }
 
