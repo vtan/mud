@@ -12,6 +12,7 @@ lazy_static! {
         span("Commands:").bold().line(),
         span("look").color("white").line().push(span(" – Look around or at something")),
         span("north").color("white").line().push(span(", etc. – Move to another room")),
+        span("kill").color("white").line().push(span(", etc. – Attack something or someone")),
         span("say").color("white").line().push(span(" – Say something to the others in the room")),
         span("emote").color("white").line().push(span(" – Act out something")),
         span("roll").color("white").line().push(span(" – Roll a die")),

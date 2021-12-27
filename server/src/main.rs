@@ -1,6 +1,7 @@
 mod event_writer;
 mod game_alias;
 mod game_chat;
+mod game_combat;
 mod game_help;
 mod game_logic;
 mod game_room;

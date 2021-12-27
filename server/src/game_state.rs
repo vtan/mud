@@ -21,6 +21,7 @@ pub struct GameState {
     pub mob_templates: IdMap<MobTemplate>,
     pub mob_instances: IdMap<MobInstance>,
     pub next_mob_instance_id: Id<MobInstance>,
+    pub scheduled_mob_spawns: BTreeMap<u64, (Id<Room>, Id<MobTemplate>)>,
 }
 
 impl GameState {
@@ -35,6 +36,7 @@ impl GameState {
             scheduled_room_var_resets: BTreeMap::new(),
             mob_instances: HashMap::new(),
             next_mob_instance_id: Id::new(0),
+            scheduled_mob_spawns: BTreeMap::new(),
         }
     }
 

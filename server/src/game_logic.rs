@@ -2,12 +2,12 @@ use crate::{
     event_writer::EventWriter,
     game_alias,
     game_chat::{self, ChatCommand},
-    game_help,
+    game_combat, game_help,
     game_room::{
         describe_room, eval_room_description, resolve_room_specific_command,
         resolve_target_in_room, run_room_command, RoomSpecificCommand, RoomTarget,
     },
-    game_state::{GameState, MobInstance, Player, Room},
+    game_state::{GameState, MobInstance, MobTemplate, Player, Room},
     id::Id,
     line::{line, span},
     text_util::{are, plural},
@@ -27,14 +27,7 @@ pub fn initialize(state: &mut GameState) {
             })
         })
         .collect::<Vec<_>>();
-    state.mob_instances = room_ids_templates
-        .into_iter()
-        .map(|(room_id, template)| {
-            let id = state.get_next_mob_instance_id();
-            let instance = MobInstance { id, room_id, template };
-            (id, instance)
-        })
-        .collect();
+    spawn_mobs(room_ids_templates, state);
 }
 
 pub fn on_player_connect(player: Player, writer: &mut EventWriter, state: &mut GameState) {
@@ -83,14 +76,37 @@ pub fn on_player_disconnect(
 
 pub fn on_tick(writer: &mut EventWriter, state: &mut GameState) {
     state.ticks += 1;
+    {
+        let remaining = state.scheduled_room_var_resets.split_off(&(state.ticks + 1));
+        let to_reset = state.scheduled_room_var_resets.clone();
+        state.scheduled_room_var_resets = remaining;
 
-    let remaining = state.scheduled_room_var_resets.split_off(&(state.ticks + 1));
-    let to_reset = state.scheduled_room_var_resets.clone();
-    state.scheduled_room_var_resets = remaining;
+        for (room_id, var, message) in to_reset.values() {
+            state.set_room_var(*room_id, var.to_string(), 0);
+            writer.tell_room(span(message).line(), *room_id, state);
+        }
+    }
+    {
+        let remaining = state.scheduled_mob_spawns.split_off(&(state.ticks + 1));
+        let to_respawn = state.scheduled_mob_spawns.clone();
+        state.scheduled_mob_spawns = remaining;
 
-    for (room_id, var, message) in to_reset.values() {
-        state.set_room_var(*room_id, var.to_string(), 0);
-        writer.tell_room(span(message).line(), *room_id, state);
+        spawn_mobs(
+            to_respawn
+                .into_values()
+                .filter_map(|(room_id, mob_template_id)| {
+                    state.mob_templates.get(&mob_template_id).map(|template| {
+                        writer.tell_room(
+                            span(&format!("A {} appears.", template.name)).line(),
+                            room_id,
+                            state,
+                        );
+                        (room_id, template.clone())
+                    })
+                })
+                .collect(),
+            state,
+        );
     }
 }
 
@@ -109,6 +125,10 @@ pub fn on_command(
 
     match command_head.as_str() {
         "look" => look(&player, words, writer, state),
+        "kill" => {
+            let Player { id, name, room_id } = player;
+            game_combat::kill(*id, &name.clone(), *room_id, words, writer, state)
+        }
         "say" if !words.is_empty() => {
             game_chat::chat(&player, words, ChatCommand::Say, writer, state);
             Ok(())
@@ -275,4 +295,16 @@ fn roll_die(player: &Player, writer: &mut EventWriter, state: &GameState) -> Res
         state,
     );
     Ok(())
+}
+
+fn spawn_mobs(room_ids_templates: Vec<(Id<Room>, MobTemplate)>, state: &mut GameState) {
+    let new_mobs = room_ids_templates
+        .into_iter()
+        .map(|(room_id, template)| {
+            let id = state.get_next_mob_instance_id();
+            let instance = MobInstance { id, room_id, template };
+            (id, instance)
+        })
+        .collect::<Vec<_>>();
+    state.mob_instances.extend(new_mobs);
 }

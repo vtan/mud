@@ -1,14 +1,5 @@
 use crate::line::{span, LineSpan};
 
-pub fn and_list(words: &[String]) -> String {
-    match words.len() {
-        0 => "".to_string(),
-        1 => words[0].clone(),
-        2 => format!("{} and {}", words[0], words[1]),
-        len => format!("{} and {}", words[0..len - 1].join(", "), words[len - 1]),
-    }
-}
-
 pub fn and_spans(mut words: Vec<LineSpan>) -> Vec<LineSpan> {
     match words.len() {
         0 => words,
