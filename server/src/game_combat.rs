@@ -154,16 +154,18 @@ pub fn tick_mob_attacks(writer: &mut EventWriter, state: &mut GameState) {
         .collect::<Vec<_>>();
 
     let GameState { players, rooms, .. } = &*state;
-    kills.into_iter().for_each(|(killed_player_id, killed_player_name, room_id, respawn_room_id)| {
-        let msg_target = "You die.";
-        writer.tell(killed_player_id, Line::str(msg_target));
-        let msg_others = format!("{} dies.", killed_player_name);
-        writer.tell_room_except2(Line::str(&msg_others), room_id, killed_player_id, players);
+    kills.into_iter().for_each(
+        |(killed_player_id, killed_player_name, room_id, respawn_room_id)| {
+            let msg_target = "You die.";
+            writer.tell(killed_player_id, Line::str(msg_target));
+            let msg_others = format!("{} dies.", killed_player_name);
+            writer.tell_room_except2(Line::str(&msg_others), room_id, killed_player_id, players);
 
-        if let Some(room) = rooms.get(&respawn_room_id) {
-            describe_room(killed_player_id, room, writer, state);
-        }
-    });
+            if let Some(room) = rooms.get(&respawn_room_id) {
+                describe_room(killed_player_id, room, writer, state);
+            }
+        },
+    );
 }
 
 pub fn update_mob_target(mob: &mut MobInstance, players: &IdMap<Player>, writer: &mut EventWriter) {
