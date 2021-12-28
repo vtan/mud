@@ -1,4 +1,4 @@
-use std::collections::{BTreeMap, HashMap};
+use std::collections::{BTreeMap, HashMap, HashSet};
 
 use serde::Deserialize;
 
@@ -61,6 +61,7 @@ pub struct Player {
     pub id: Id<Player>,
     pub name: String,
     pub room_id: Id<Room>,
+    pub hp: i32,
     pub attack_target: Option<Id<MobInstance>>,
 }
 
@@ -170,6 +171,7 @@ pub struct MobTemplate {
     pub aliases: Vec<String>,
     pub description: String,
     pub max_hp: i32,
+    pub damage: i32,
 }
 
 impl Named for MobTemplate {
@@ -188,4 +190,6 @@ pub struct MobInstance {
     pub room_id: Id<Room>,
     pub template: MobTemplate,
     pub hp: i32,
+    pub hostile_to: HashSet<Id<Player>>,
+    pub attack_target: Option<Id<Player>>,
 }

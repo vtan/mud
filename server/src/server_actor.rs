@@ -65,6 +65,7 @@ pub async fn run(
                     id: player_id,
                     name: player_name,
                     room_id: Id::new(0),
+                    hp: 100,
                     attack_target: None,
                 };
                 game_logic::on_player_connect(player, &mut event_writer, &mut game_state);

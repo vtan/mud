@@ -1,3 +1,5 @@
+use std::collections::HashSet;
+
 use crate::{
     event_writer::EventWriter,
     game_alias,
@@ -76,7 +78,8 @@ pub fn on_player_disconnect(
 
 pub fn on_tick(writer: &mut EventWriter, state: &mut GameState) {
     state.ticks += 1;
-    game_combat::deal_player_damage(writer, state);
+    game_combat::tick_player_attacks(writer, state);
+    game_combat::tick_mob_attacks(writer, state);
     {
         let remaining = state.scheduled_room_var_resets.split_off(&(state.ticks + 1));
         let to_reset = state.scheduled_room_var_resets.clone();
@@ -305,7 +308,14 @@ fn spawn_mobs(room_ids_templates: Vec<(Id<Room>, MobTemplate)>, state: &mut Game
     mob_instances.extend(room_ids_templates.into_iter().map(|(room_id, template)| {
         let id = mob_instance_id_source.next();
         let hp = template.max_hp;
-        let instance = MobInstance { id, room_id, template, hp };
+        let instance = MobInstance {
+            id,
+            room_id,
+            template,
+            hp,
+            hostile_to: HashSet::new(),
+            attack_target: None,
+        };
         (id, instance)
     }));
 }
