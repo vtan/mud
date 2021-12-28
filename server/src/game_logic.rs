@@ -125,14 +125,14 @@ pub fn on_command(
     let player = state.players.get(&player_id).ok_or("Self player not found")?;
 
     match command_head.as_str() {
-        "look" => look(&player, words, writer, state),
+        "look" => look(player, words, writer, state),
         "kill" => game_combat::kill(player.id, words, writer, state),
         "say" if !words.is_empty() => {
-            game_chat::chat(&player, words, ChatCommand::Say, writer, state);
+            game_chat::chat(player, words, ChatCommand::Say, writer, state);
             Ok(())
         }
         "emote" if !words.is_empty() => {
-            game_chat::chat(&player, words, ChatCommand::Emote, writer, state);
+            game_chat::chat(player, words, ChatCommand::Emote, writer, state);
             Ok(())
         }
         "who" if words.is_empty() => {
@@ -147,7 +147,7 @@ pub fn on_command(
             game_alias::alias(player_id, writer);
             Ok(())
         }
-        "roll" if words.is_empty() => roll_die(&player, writer, state),
+        "roll" if words.is_empty() => roll_die(player, writer, state),
 
         other_command => {
             let room_specific_command =

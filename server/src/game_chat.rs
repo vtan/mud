@@ -34,14 +34,11 @@ pub fn chat(
             Line::str("That message contains illegal characters."),
         );
     } else {
-        match kind {
-            ChatCommand::Say => {
-                let mut chars = words_joined.chars();
-                if let Some(first_char) = chars.next() {
-                    words_joined = first_char.to_uppercase().collect::<String>() + chars.as_str()
-                }
+        if let ChatCommand::Say = kind {
+            let mut chars = words_joined.chars();
+            if let Some(first_char) = chars.next() {
+                words_joined = first_char.to_uppercase().collect::<String>() + chars.as_str()
             }
-            _ => (),
         }
 
         let last_char = words_joined.chars().last().unwrap_or(' ');

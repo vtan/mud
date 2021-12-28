@@ -35,7 +35,7 @@ pub fn resolve_target_in_room<'a, 'b>(
         .filter(|room_object| room_object.matches(target))
         .map(|room_object| RoomObject { room_object });
 
-    mobs.chain(room_objects).nth(0)
+    mobs.chain(room_objects).next()
 }
 
 pub enum RoomSpecificCommand<'a> {
@@ -55,7 +55,7 @@ pub fn resolve_room_specific_command<'a>(
     if let Some(to_room_id) = room.exits.get(command).and_then(|exit| match exit {
         RoomExit::Static(to_room_id) => Some(to_room_id),
         RoomExit::Conditional { condition, to } => {
-            if eval_room_condition(&condition, room_id, state) {
+            if eval_room_condition(condition, room_id, state) {
                 Some(to)
             } else {
                 None
@@ -72,7 +72,7 @@ pub fn resolve_room_specific_command<'a>(
             if room_command.command != command {
                 false
             } else if let Some(cond) = &room_command.condition {
-                eval_room_condition(&cond, room_id, state)
+                eval_room_condition(cond, room_id, state)
             } else {
                 true
             }
@@ -135,7 +135,7 @@ pub fn run_room_command(
                 state.set_room_var(room_id, var.to_string(), *value);
             }
             Statement::TellSelf(line) => {
-                writer.tell(self_id, Line::str(&line));
+                writer.tell(self_id, Line::str(line));
             }
             Statement::TellOthers(line) => {
                 let player_name = state.players.get(&self_id).map_or("", |p| &p.name);
@@ -147,7 +147,7 @@ pub fn run_room_command(
                 );
             }
             Statement::TellRoom(line) => {
-                writer.tell_room(Line::str(&line), room_id, state);
+                writer.tell_room(Line::str(line), room_id, state);
             }
             Statement::ResetRoomVarAfterTicks(var, delay, message) => {
                 state
@@ -193,7 +193,7 @@ pub fn describe_room(
         .filter_map(|(direction, exit)| match exit {
             RoomExit::Static(_) => Some(direction),
             RoomExit::Conditional { condition, .. } => {
-                if eval_room_condition(&condition, room.id, state) {
+                if eval_room_condition(condition, room.id, state) {
                     Some(direction)
                 } else {
                     None
