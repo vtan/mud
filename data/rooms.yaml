@@ -2,15 +2,15 @@
   name: First room
   description: This is the first room. There is nothing here.
   exits:
-    north: 1
+    north: 6
     south: 2
     east: 3
 
 - id: 1
-  name: Northern room
-  description: It is very north here. There is an orb in the middle of the room.
+  name: Upper chamber
+  description: There is an orb in the middle of the room.
   exits:
-    south: 0
+    down: 7
   objects:
   - name: orb
     description:
@@ -131,3 +131,66 @@
     west: 4
   mobSpawns:
   - mobTemplateId: 2
+
+- id: 6
+  name: Outside the wizard tower
+  description: It is very north here. A ruined tower looms over you.
+  exits:
+    north: 7
+    south: 0
+
+- id: 7
+  name: Dining quarters
+  description:
+  - fragment: >-
+      The ground floor of the wizard's tower has been thoroughly looted.
+      The only remaining furniture is the dining table at the wall.
+      A staircase leads upstairs.
+  - condition: { equals: [lever, 1] }
+    fragment: A part of the floor has slided away, revealing another staircase beneath.
+  exits:
+    south: 6
+    up: 1
+    down:
+      condition: { equals: [lever, 1] }
+      to: 8
+  objects:
+  - name: table
+    description: >-
+      There is a single rusty fork on the table.
+      A plain candelabra is attached to the wall next to the table.
+  - name: fork
+    description: Just a fork. Probably not worth taking.
+  - name: candelabra
+    aliases: [lever]
+    description: On a closer inspection, the candelabra seems to be a cleverly disguised lever.
+    commands:
+      - command: pull
+        condition: { equals: [lever, 0] }
+        statements:
+        - setRoomVar: [lever, 1]
+        - resetRoomVarAfterSecs: [lever, 30, "The floor slides back, hiding the stairs below."]
+        - tellSelf: "You pull the candelabra."
+        - tellOthers: "pulls the candelabra above the dining table."
+        - tellRoom: "A part of the floor slides away, revealing a staircase beneath."
+
+- id: 8
+  name: Below the wizard tower
+  description: Stay tuned for more content.
+  exits:
+    up: 7
+    east: 9
+  mobSpawns:
+  - mobTemplateId: 0
+  - mobTemplateId: 0
+  - mobTemplateId: 1
+
+- id: 9
+  name: Below the wizard tower
+  description: Stay tuned for more content.
+  exits:
+    west: 8
+  mobSpawns:
+  - mobTemplateId: 1
+  - mobTemplateId: 3
+  - mobTemplateId: 3

@@ -33,15 +33,11 @@ module.exports = {
     },
     proxy: {
       "/api/ws": {
-        target: "ws://localhost:8081",
+        target: "ws://0.0.0.0:8081",
         ws: true
       },
       "/api": {
-        target: {
-          host: "0.0.0.0",
-          protocol: 'http:',
-          port: 8081
-        }
+        target: "http://0.0.0.0:8081"
       }
     }
   }

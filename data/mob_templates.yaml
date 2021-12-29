@@ -19,3 +19,10 @@
   maxHp: 400
   damage: 250
   attackPeriod: 10
+
+- id: 3
+  name: zombie
+  description: A horrid walking corpse.
+  maxHp: 80
+  damage: 10
+  attackPeriod: 5
