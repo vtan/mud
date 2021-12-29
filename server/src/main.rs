@@ -8,6 +8,7 @@ mod game_room;
 mod game_state;
 mod id;
 mod line;
+mod message_stash;
 mod named;
 mod server_actor;
 mod server_websocket;
@@ -34,7 +35,7 @@ async fn main() {
     let socket_address = std::env::var("MUD_ADDR")
         .ok()
         .and_then(|str| str.parse::<SocketAddr>().ok())
-        .unwrap_or(([127, 0, 0, 1], 8081).into());
+        .unwrap_or_else(|| ([127, 0, 0, 1], 8081).into());
 
     let (actor_sender, actor_receiver) = mpsc::channel::<server_actor::Message>(4096);
     {

@@ -1,12 +1,13 @@
 use std::collections::HashMap;
 
 use crate::{
-    game_state::{GameState, IdMap, Player, Room},
+    game_state::{GameState, Player, Room},
     id::Id,
     line::Line,
 };
 
 pub struct EventWriter {
+    // TODO: store a Vec<Rc/Arc<Line>> to avoid storing the same Line many times?
     pub lines: HashMap<Id<Player>, Vec<Line>>,
 }
 
@@ -43,21 +44,6 @@ impl EventWriter {
         state: &GameState,
     ) {
         state.players.values().for_each(|player| {
-            if player.id != except && player.room_id == room_id {
-                self.tell(player.id, line.clone());
-            }
-        })
-    }
-
-    // TODO: delete other function
-    pub fn tell_room_except2(
-        &mut self,
-        line: Line,
-        room_id: Id<Room>,
-        except: Id<Player>,
-        players: &IdMap<Player>,
-    ) {
-        players.values().for_each(|player| {
             if player.id != except && player.room_id == room_id {
                 self.tell(player.id, line.clone());
             }

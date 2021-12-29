@@ -4,6 +4,7 @@ use crate::{
     game_state::{GameState, IdMap, MobInstance, Player},
     id::Id,
     line::{span, Line},
+    message_stash::MessageStash,
 };
 
 pub fn kill(
@@ -21,20 +22,21 @@ pub fn kill(
 
     match game_room::resolve_target_in_room(&args_joined, room, mob_instances) {
         Some(RoomTarget::MobInstance { mob_instance }) => {
+            let mut messages = MessageStash::new();
+
             let mob_id = mob_instance.id;
             player.attack_target = Some(mob_id);
 
             let msg_self = format!("You attack the {}.", mob_instance.template.name);
-            writer.tell(player_id, span(&msg_self).color("red").line());
+            messages.tell(player_id, span(&msg_self).color("red").line());
             let msg_others = format!(
                 "{} attacks the {}.",
                 &player.name, mob_instance.template.name
             );
-            writer.tell_room_except2(
-                span(&msg_others).color("red").line(),
+            messages.tell_room_except(
                 player.room_id,
                 player_id,
-                players,
+                span(&msg_others).color("red").line(),
             );
 
             mob_instances.values_mut().for_each(|mob| {
@@ -42,6 +44,8 @@ pub fn kill(
                     mob.hostile_to.insert(player_id);
                 }
             });
+
+            messages.write_into(writer, players);
         }
         Some(_) => {
             writer.tell(player_id, Line::str("You cannot kill that."));
@@ -57,26 +61,10 @@ pub fn tick_player_attacks(writer: &mut EventWriter, state: &mut GameState) {
     let GameState { ticks, players, mob_instances, scheduled_mob_spawns, .. } = state;
 
     let mut killed_mob_ids = Vec::new();
-    let mut room_messages = Vec::new();
+    let mut messages = MessageStash::new();
     players.values_mut().for_each(|player| {
         if player.attack_target.is_none() {
-            player.attack_target = mob_instances
-                .values()
-                .filter(|mob| mob.room_id == player.room_id && mob.hostile_to.contains(&player.id))
-                .map(|mob| mob.id)
-                .next();
-            if let Some(new_target_id) = player.attack_target {
-                if let Some(mob) = mob_instances.get(&new_target_id) {
-                    let msg_self = format!("You attack the {}.", mob.template.name);
-                    writer.tell(player.id, span(&msg_self).color("red").line());
-                    let msg_others = format!("{} attacks the {}.", &player.name, mob.template.name);
-                    room_messages.push((
-                        player.room_id,
-                        Some(player.id),
-                        span(&msg_others).color("red").line(),
-                    ));
-                }
-            }
+            update_player_target(player, mob_instances, &mut messages);
         }
         if let Some(target_mob_id) = player.attack_target {
             match mob_instances.get_mut(&target_mob_id) {
@@ -86,22 +74,22 @@ pub fn tick_player_attacks(writer: &mut EventWriter, state: &mut GameState) {
 
                     let msg_self =
                         format!("You hit the {} for {} damage.", mob.template.name, damage);
-                    writer.tell(player.id, span(&msg_self).color("red").line());
+                    messages.tell(player.id, span(&msg_self).color("red").line());
                     let msg_others = format!(
                         "{} hits the {} for {} damage.",
                         player.name, mob.template.name, damage
                     );
-                    room_messages.push((
+                    messages.tell_room_except(
                         room_id,
-                        Some(player.id),
+                        player.id,
                         span(&msg_others).color("red").line(),
-                    ));
+                    );
 
                     if mob.hp > damage {
                         mob.hp -= 10;
                     } else {
                         let msg = format!("The {} dies.", mob.template.name);
-                        room_messages.push((room_id, None, span(&msg).color("red").line()));
+                        messages.tell_room(room_id, span(&msg).color("red").line());
                         let respawn_at = *ticks + 30;
                         scheduled_mob_spawns.insert(respawn_at, (room_id, mob.template.id));
 
@@ -121,76 +109,99 @@ pub fn tick_player_attacks(writer: &mut EventWriter, state: &mut GameState) {
         }
         _ => (),
     });
-    room_messages.into_iter().for_each(|(room_id, except, line)| {
-        if let Some(except) = except {
-            writer.tell_room_except(line, room_id, except, state);
-        } else {
-            writer.tell_room(line, room_id, state);
-        }
-    });
+    messages.write_into(writer, players);
+}
+
+pub fn update_player_target(
+    player: &mut Player,
+    mob_instances: &IdMap<MobInstance>,
+    messages: &mut MessageStash,
+) {
+    let next_target = mob_instances
+        .values()
+        .find(|mob| mob.room_id == player.room_id && mob.hostile_to.contains(&player.id));
+
+    if let Some(mob) = next_target {
+        player.attack_target = Some(mob.id);
+
+        let msg_self = format!("You attack the {}.", mob.template.name);
+        messages.tell(player.id, span(&msg_self).color("red").line());
+        let msg_others = format!("{} attacks the {}.", &player.name, mob.template.name);
+        messages.tell_room_except(
+            player.room_id,
+            player.id,
+            span(&msg_others).color("red").line(),
+        );
+    }
 }
 
 pub fn tick_mob_attacks(writer: &mut EventWriter, state: &mut GameState) {
     let GameState { players, mob_instances, .. } = state;
+    let mut messages = MessageStash::new();
     let mut killed_players = vec![];
 
     mob_instances.values_mut().for_each(|mob| {
-        update_mob_target(mob, players, writer);
+        update_mob_target(mob, players, &mut messages);
 
         if let Some(target) = mob.attack_target.and_then(|id| players.get_mut(&id)) {
             let mob_name = &mob.template.name;
             let damage = mob.template.damage;
-            let target_id = target.id;
-            let target_name = target.name.clone();
 
             let killed = damage >= target.hp;
             if killed {
                 target.hp = 100;
                 target.attack_target = None;
-                target.room_id = Id::new(0);
-                killed_players.push((target.id, target.room_id));
+                let respawn_at = Id::new(0);
+                killed_players.push((target.id, respawn_at));
             } else {
                 target.hp -= damage;
             };
 
             let msg_target = format!("The {} hits you for {} damage.", mob_name, damage);
-            writer.tell(target_id, span(&msg_target).color("red").line());
+            messages.tell(target.id, span(&msg_target).color("red").line());
             let msg_others = format!(
                 "The {} hits {} for {} damage.",
-                mob_name, target_name, damage
+                mob_name, target.name, damage
             );
-            writer.tell_room_except2(
-                span(&msg_others).color("red").line(),
+            messages.tell_room_except(
                 mob.room_id,
-                target_id,
-                players,
+                target.id,
+                span(&msg_others).color("red").line(),
             );
 
             if killed {
                 let msg_target = "You die.";
-                writer.tell(target_id, Line::str(msg_target));
-                let msg_others = format!("{} dies.", target_name);
-                writer.tell_room_except2(Line::str(&msg_others), mob.room_id, target_id, players);
+                messages.tell(target.id, Line::str(msg_target));
+                let msg_others = format!("{} dies.", target.name);
+                messages.tell_room_except(mob.room_id, target.id, Line::str(&msg_others));
             }
         }
     });
-    killed_players.iter().for_each(|(player_id, _)| {
+    killed_players.iter().for_each(|(player_id, respawn_room_id)| {
+        if let Some(player) = players.get_mut(player_id) {
+            player.room_id = *respawn_room_id;
+        }
         mob_instances.values_mut().for_each(|mob| {
             if mob.hostile_to.remove(player_id) && mob.attack_target == Some(*player_id) {
                 mob.attack_target = None;
             }
         });
     });
+    messages.write_into(writer, players);
 
     let GameState { rooms, .. } = &*state;
-    killed_players.into_iter().for_each(|(player_id, room_id)| {
-        if let Some(room) = rooms.get(&room_id) {
+    killed_players.into_iter().for_each(|(player_id, respawn_room_id)| {
+        if let Some(room) = rooms.get(&respawn_room_id) {
             describe_room(player_id, room, writer, state);
         }
     });
 }
 
-pub fn update_mob_target(mob: &mut MobInstance, players: &IdMap<Player>, writer: &mut EventWriter) {
+pub fn update_mob_target(
+    mob: &mut MobInstance,
+    players: &IdMap<Player>,
+    messages: &mut MessageStash,
+) {
     mob.hostile_to = mob
         .hostile_to
         .iter()
@@ -216,13 +227,12 @@ pub fn update_mob_target(mob: &mut MobInstance, players: &IdMap<Player>, writer:
             mob.attack_target = Some(new_target.id);
 
             let msg_target = format!("The {} attacks you.", mob.template.name);
-            writer.tell(new_target.id, span(&msg_target).color("red").line());
+            messages.tell(new_target.id, span(&msg_target).color("red").line());
             let msg_others = format!("The {} attacks {}.", mob.template.name, new_target.name);
-            writer.tell_room_except2(
-                span(&msg_others).color("red").line(),
+            messages.tell_room_except(
                 mob.room_id,
                 new_target.id,
-                players,
+                span(&msg_others).color("red").line(),
             );
         }
     }
