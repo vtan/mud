@@ -37,9 +37,11 @@ pub fn kill(
                 players,
             );
 
-            if let Some(mob) = mob_instances.get_mut(&mob_id) {
-                mob.hostile_to.insert(player_id);
-            }
+            mob_instances.values_mut().for_each(|mob| {
+                if mob.room_id == room.id {
+                    mob.hostile_to.insert(player_id);
+                }
+            });
         }
         Some(_) => {
             writer.tell(player_id, Line::str("You cannot kill that."));
@@ -57,6 +59,25 @@ pub fn tick_player_attacks(writer: &mut EventWriter, state: &mut GameState) {
     let mut killed_mob_ids = Vec::new();
     let mut room_messages = Vec::new();
     players.values_mut().for_each(|player| {
+        if player.attack_target.is_none() {
+            player.attack_target = mob_instances
+                .values()
+                .filter(|mob| mob.room_id == player.room_id && mob.hostile_to.contains(&player.id))
+                .map(|mob| mob.id)
+                .next();
+            if let Some(new_target_id) = player.attack_target {
+                if let Some(mob) = mob_instances.get(&new_target_id) {
+                    let msg_self = format!("You attack the {}.", mob.template.name);
+                    writer.tell(player.id, span(&msg_self).color("red").line());
+                    let msg_others = format!("{} attacks the {}.", &player.name, mob.template.name);
+                    room_messages.push((
+                        player.room_id,
+                        Some(player.id),
+                        span(&msg_others).color("red").line(),
+                    ));
+                }
+            }
+        }
         if let Some(target_mob_id) = player.attack_target {
             match mob_instances.get_mut(&target_mob_id) {
                 Some(mob) if mob.room_id == player.room_id => {
@@ -128,9 +149,6 @@ pub fn tick_mob_attacks(writer: &mut EventWriter, state: &mut GameState) {
                 target.attack_target = None;
                 target.room_id = Id::new(0);
                 killed_players.push((target.id, target.room_id));
-
-                mob.hostile_to.remove(&target.id);
-                mob.attack_target = None;
             } else {
                 target.hp -= damage;
             };
@@ -155,6 +173,13 @@ pub fn tick_mob_attacks(writer: &mut EventWriter, state: &mut GameState) {
                 writer.tell_room_except2(Line::str(&msg_others), mob.room_id, target_id, players);
             }
         }
+    });
+    killed_players.iter().for_each(|(player_id, _)| {
+        mob_instances.values_mut().for_each(|mob| {
+            if mob.hostile_to.remove(player_id) && mob.attack_target == Some(*player_id) {
+                mob.attack_target = None;
+            }
+        });
     });
 
     let GameState { rooms, .. } = &*state;
