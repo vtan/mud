@@ -8,6 +8,7 @@ use crate::{
     line::{span, Color, Line},
     named::Named,
     text_util::{and_span_vecs, and_spans},
+    tick::TickDuration,
 };
 
 pub enum RoomTarget<'a, 'b> {
@@ -149,10 +150,11 @@ pub fn run_room_command(
             Statement::TellRoom(line) => {
                 writer.tell_room(Line::str(line), room_id, state);
             }
-            Statement::ResetRoomVarAfterTicks(var, delay, message) => {
-                state
-                    .scheduled_room_var_resets
-                    .insert(state.ticks + delay, (room_id, var.clone(), message.clone()));
+            Statement::ResetRoomVarAfterSecs(var, secs, message) => {
+                state.scheduled_room_var_resets.insert(
+                    state.ticks + TickDuration::from_secs(*secs),
+                    (room_id, var.clone(), message.clone()),
+                );
             }
         }
     }

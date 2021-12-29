@@ -114,7 +114,7 @@
         condition: { equals: [book, 0] }
         statements:
         - setRoomVar: [book, 1]
-        - resetRoomVarAfterTicks: [book, 30, "The bookshelf slides back."]
+        - resetRoomVarAfterSecs: [book, 30, "The bookshelf slides back."]
         - tellSelf: "You push the book."
         - tellOthers: "pushes a book on a bookshelf."
         - tellRoom: "The bookcase slides away, giving way to a dark passageway to the east."

@@ -77,11 +77,17 @@ pub fn on_player_disconnect(
 }
 
 pub fn on_tick(writer: &mut EventWriter, state: &mut GameState) {
-    state.ticks += 1;
+    state.ticks = state.ticks.increase();
     game_combat::tick_player_attacks(writer, state);
     game_combat::tick_mob_attacks(writer, state);
+    if state.ticks.is_large_tick() {
+        on_large_tick(writer, state);
+    }
+}
+
+fn on_large_tick(writer: &mut EventWriter, state: &mut GameState) {
     {
-        let remaining = state.scheduled_room_var_resets.split_off(&(state.ticks + 1));
+        let remaining = state.scheduled_room_var_resets.split_off(&(state.ticks.increase()));
         let to_reset = state.scheduled_room_var_resets.clone();
         state.scheduled_room_var_resets = remaining;
 
@@ -91,7 +97,7 @@ pub fn on_tick(writer: &mut EventWriter, state: &mut GameState) {
         }
     }
     {
-        let remaining = state.scheduled_mob_spawns.split_off(&(state.ticks + 1));
+        let remaining = state.scheduled_mob_spawns.split_off(&(state.ticks.increase()));
         let to_respawn = state.scheduled_mob_spawns.clone();
         state.scheduled_mob_spawns = remaining;
 
@@ -308,11 +314,13 @@ fn spawn_mobs(room_ids_templates: Vec<(Id<Room>, MobTemplate)>, state: &mut Game
     mob_instances.extend(room_ids_templates.into_iter().map(|(room_id, template)| {
         let id = mob_instance_id_source.next();
         let hp = template.max_hp;
+        let attack_offset = template.attack_period.random_offset(&mut thread_rng());
         let instance = MobInstance {
             id,
             room_id,
             template,
             hp,
+            attack_offset,
             hostile_to: HashSet::new(),
             attack_target: None,
         };

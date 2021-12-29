@@ -13,6 +13,7 @@ mod named;
 mod server_actor;
 mod server_websocket;
 mod text_util;
+mod tick;
 
 use std::{fs, net::SocketAddr};
 

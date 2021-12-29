@@ -2,15 +2,17 @@ use std::collections::HashMap;
 
 use futures_util::future;
 use log::{debug, warn};
+use rand::thread_rng;
 use serde::Serialize;
 use tokio::{sync::mpsc, time};
 
 use crate::{
     event_writer::EventWriter,
-    game_logic,
+    game_combat, game_logic,
     game_state::{GameState, LoadedGameState, Player},
     id::Id,
     line::Line,
+    tick,
 };
 
 #[derive(Debug)]
@@ -43,7 +45,7 @@ pub async fn run(
     use Message::*;
 
     tokio::spawn(async move {
-        let mut interval = time::interval(time::Duration::from_secs(1));
+        let mut interval = time::interval(tick::TICK_INTERVAL);
         loop {
             interval.tick().await;
             self_sender.send(Tick).await.unwrap();
@@ -66,6 +68,7 @@ pub async fn run(
                     name: player_name,
                     room_id: Id::new(0),
                     hp: 100,
+                    attack_offset: game_combat::PLAYER_ATTACK_FREQ.random_offset(&mut thread_rng()),
                     attack_target: None,
                 };
                 game_logic::on_player_connect(player, &mut event_writer, &mut game_state);

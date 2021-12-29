@@ -5,6 +5,7 @@ use serde::Deserialize;
 use crate::{
     id::{Id, IdSource},
     named::Named,
+    tick::{Tick, TickDuration},
 };
 
 pub type IdMap<T> = HashMap<Id<T>, T>;
@@ -16,15 +17,15 @@ pub struct LoadedGameState {
 
 #[derive(Clone, Debug)]
 pub struct GameState {
-    pub ticks: u64,
+    pub ticks: Tick,
     pub players: IdMap<Player>,
     pub rooms: IdMap<Room>,
     pub room_vars: HashMap<(Id<Room>, String), i32>,
-    pub scheduled_room_var_resets: BTreeMap<u64, (Id<Room>, String, String)>,
+    pub scheduled_room_var_resets: BTreeMap<Tick, (Id<Room>, String, String)>,
     pub mob_templates: IdMap<MobTemplate>,
     pub mob_instances: IdMap<MobInstance>,
     pub mob_instance_id_source: IdSource<MobInstance>,
-    pub scheduled_mob_spawns: BTreeMap<u64, (Id<Room>, Id<MobTemplate>)>,
+    pub scheduled_mob_spawns: BTreeMap<Tick, (Id<Room>, Id<MobTemplate>)>,
 }
 
 impl GameState {
@@ -33,7 +34,7 @@ impl GameState {
         GameState {
             rooms,
             mob_templates,
-            ticks: 0,
+            ticks: Tick::zero(),
             players: HashMap::new(),
             room_vars: HashMap::new(),
             scheduled_room_var_resets: BTreeMap::new(),
@@ -62,6 +63,7 @@ pub struct Player {
     pub name: String,
     pub room_id: Id<Room>,
     pub hp: i32,
+    pub attack_offset: TickDuration,
     pub attack_target: Option<Id<MobInstance>>,
 }
 
@@ -150,7 +152,7 @@ pub enum Condition {
 #[serde(rename_all = "camelCase")]
 pub enum Statement {
     SetRoomVar(String, i32),
-    ResetRoomVarAfterTicks(String, u64, String),
+    ResetRoomVarAfterSecs(String, f32, String),
     TellSelf(String),
     TellOthers(String),
     TellRoom(String),
@@ -172,6 +174,8 @@ pub struct MobTemplate {
     pub description: String,
     pub max_hp: i32,
     pub damage: i32,
+    #[serde(deserialize_with = "TickDuration::deserialize_from_secs")]
+    pub attack_period: TickDuration,
 }
 
 impl Named for MobTemplate {
@@ -190,6 +194,7 @@ pub struct MobInstance {
     pub room_id: Id<Room>,
     pub template: MobTemplate,
     pub hp: i32,
+    pub attack_offset: TickDuration,
     pub hostile_to: HashSet<Id<Player>>,
     pub attack_target: Option<Id<Player>>,
 }

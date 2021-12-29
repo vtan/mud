@@ -3,16 +3,19 @@
   description: A reanimated skeleton wandering mindlessly and staring with empty sockets.
   maxHp: 40
   damage: 10
+  attackPeriod: 1.5
 
 - id: 1
   name: ghost
   description: A translucent humanoid figure with a chilly aura.
   maxHp: 65
   damage: 10
+  attackPeriod: 2
 
 - id: 2
   name: young red dragon
   aliases: [dragon, red dragon]
   description: A large serpentine creature with blood red scales and a smoldering snout.
   maxHp: 400
-  damage: 20
+  damage: 250
+  attackPeriod: 10
