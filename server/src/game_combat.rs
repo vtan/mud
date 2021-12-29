@@ -28,7 +28,7 @@ pub fn kill(
             player.attack_target = Some(mob_id);
 
             let msg_self = format!("You attack the {}.", mob_instance.template.name);
-            messages.tell(player_id, span(&msg_self).color(Color::Red).line());
+            messages.tell(player_id, span(&msg_self).color(Color::LightCyan).line());
             let msg_others = format!(
                 "{} attacks the {}.",
                 &player.name, mob_instance.template.name
@@ -36,7 +36,7 @@ pub fn kill(
             messages.tell_room_except(
                 player.room_id,
                 player_id,
-                span(&msg_others).color(Color::Red).line(),
+                span(&msg_others).color(Color::Cyan).line(),
             );
 
             mob_instances.values_mut().for_each(|mob| {
@@ -74,7 +74,7 @@ pub fn tick_player_attacks(writer: &mut EventWriter, state: &mut GameState) {
 
                     let msg_self =
                         format!("You hit the {} for {} damage.", mob.template.name, damage);
-                    messages.tell(player.id, span(&msg_self).color(Color::Red).line());
+                    messages.tell(player.id, span(&msg_self).color(Color::LightCyan).line());
                     let msg_others = format!(
                         "{} hits the {} for {} damage.",
                         player.name, mob.template.name, damage
@@ -82,14 +82,14 @@ pub fn tick_player_attacks(writer: &mut EventWriter, state: &mut GameState) {
                     messages.tell_room_except(
                         room_id,
                         player.id,
-                        span(&msg_others).color(Color::Red).line(),
+                        span(&msg_others).color(Color::Cyan).line(),
                     );
 
                     if mob.hp > damage {
                         mob.hp -= 10;
                     } else {
                         let msg = format!("The {} dies.", mob.template.name);
-                        messages.tell_room(room_id, span(&msg).color(Color::Red).line());
+                        messages.tell_room(room_id, span(&msg).color(Color::DarkGrey).line());
                         let respawn_at = *ticks + 30;
                         scheduled_mob_spawns.insert(respawn_at, (room_id, mob.template.id));
 
@@ -125,12 +125,12 @@ pub fn update_player_target(
         player.attack_target = Some(mob.id);
 
         let msg_self = format!("You attack the {}.", mob.template.name);
-        messages.tell(player.id, span(&msg_self).color(Color::Red).line());
+        messages.tell(player.id, span(&msg_self).color(Color::LightCyan).line());
         let msg_others = format!("{} attacks the {}.", &player.name, mob.template.name);
         messages.tell_room_except(
             player.room_id,
             player.id,
-            span(&msg_others).color(Color::Red).line(),
+            span(&msg_others).color(Color::Cyan).line(),
         );
     }
 }
@@ -158,7 +158,7 @@ pub fn tick_mob_attacks(writer: &mut EventWriter, state: &mut GameState) {
             };
 
             let msg_target = format!("The {} hits you for {} damage.", mob_name, damage);
-            messages.tell(target.id, span(&msg_target).color(Color::Red).line());
+            messages.tell(target.id, span(&msg_target).color(Color::LightRed).line());
             let msg_others = format!(
                 "The {} hits {} for {} damage.",
                 mob_name, target.name, damage
@@ -171,9 +171,13 @@ pub fn tick_mob_attacks(writer: &mut EventWriter, state: &mut GameState) {
 
             if killed {
                 let msg_target = "You die.";
-                messages.tell(target.id, Line::str(msg_target));
+                messages.tell(target.id, span(msg_target).color(Color::DarkGrey).line());
                 let msg_others = format!("{} dies.", target.name);
-                messages.tell_room_except(mob.room_id, target.id, Line::str(&msg_others));
+                messages.tell_room_except(
+                    mob.room_id,
+                    target.id,
+                    span(&msg_others).color(Color::DarkGrey).line(),
+                );
             }
         }
     });
@@ -227,7 +231,7 @@ pub fn update_mob_target(
             mob.attack_target = Some(new_target.id);
 
             let msg_target = format!("The {} attacks you.", mob.template.name);
-            messages.tell(new_target.id, span(&msg_target).color(Color::Red).line());
+            messages.tell(new_target.id, span(&msg_target).color(Color::LightRed).line());
             let msg_others = format!("The {} attacks {}.", mob.template.name, new_target.name);
             messages.tell_room_except(
                 mob.room_id,

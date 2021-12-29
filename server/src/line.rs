@@ -56,20 +56,28 @@ pub fn span(str: &str) -> LineSpan {
 
 pub enum Color {
     White,
+    DarkGrey,
     Blue,
     Yellow,
     Orange,
+    LightRed,
     Red,
+    LightCyan,
+    Cyan,
 }
 
 impl Color {
     fn as_str(&self) -> &'static str {
         match self {
             Color::White => "white",
+            Color::DarkGrey => "dark-grey",
             Color::Blue => "blue",
             Color::Yellow => "yellow",
             Color::Orange => "orange",
+            Color::LightRed => "light-red",
             Color::Red => "red",
+            Color::LightCyan => "light-cyan",
+            Color::Cyan => "cyan",
         }
     }
 }
