@@ -5,7 +5,7 @@ use crate::{
         RoomExit, RoomObject, Statement,
     },
     id::Id,
-    line::{span, Line},
+    line::{span, Color, Line},
     named::Named,
     text_util::{and_span_vecs, and_spans},
 };
@@ -174,12 +174,12 @@ pub fn describe_room(
             .players
             .values()
             .filter(|player| player.id != self_id && player.room_id == room.id)
-            .map(|player| vec![span(&player.name).color("blue")]);
+            .map(|player| vec![span(&player.name).color(Color::Blue)]);
         let mobs = state
             .mob_instances
             .values()
             .filter(|mob| mob.room_id == room.id)
-            .map(|mob| vec![span("a "), span(&mob.template.name).color("orange")]);
+            .map(|mob| vec![span("a "), span(&mob.template.name).color(Color::Orange)]);
         let all = players.chain(mobs).collect::<Vec<_>>();
         if !all.is_empty() {
             let line = Line::str("You see ").extend(and_span_vecs(all)).push(span(" here."));
@@ -200,7 +200,7 @@ pub fn describe_room(
                 }
             }
         })
-        .map(|direction| span(direction).color("blue"))
+        .map(|direction| span(direction).color(Color::Blue))
         .collect();
     lines.push(if room.exits.is_empty() {
         Line::str("There are no exits here.")

@@ -41,11 +41,35 @@ impl LineSpan {
         LineSpan { text: self.text, bold: Some(true), color: self.color }
     }
 
-    pub fn color(self, color: &'static str) -> Self {
-        LineSpan { text: self.text, bold: self.bold, color: Some(color) }
+    pub fn color(self, color: Color) -> Self {
+        LineSpan {
+            text: self.text,
+            bold: self.bold,
+            color: Some(color.as_str()),
+        }
     }
 }
 
 pub fn span(str: &str) -> LineSpan {
     LineSpan { text: str.to_string(), bold: None, color: None }
+}
+
+pub enum Color {
+    White,
+    Blue,
+    Yellow,
+    Orange,
+    Red,
+}
+
+impl Color {
+    fn as_str(&self) -> &'static str {
+        match self {
+            Color::White => "white",
+            Color::Blue => "blue",
+            Color::Yellow => "yellow",
+            Color::Orange => "orange",
+            Color::Red => "red",
+        }
+    }
 }

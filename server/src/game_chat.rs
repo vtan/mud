@@ -6,7 +6,7 @@ use regex::Regex;
 use crate::{
     event_writer::EventWriter,
     game_state::{GameState, Player},
-    line::{span, Line},
+    line::{span, Color, Line},
 };
 
 lazy_static! {
@@ -46,12 +46,11 @@ pub fn chat(
             words_joined = words_joined.add(".");
         }
 
-        static COLOR: &str = "yellow";
         let to_self = span(&match kind {
             ChatCommand::Say => format!("You say, \"{}\"", &words_joined),
             ChatCommand::Emote => format!("{} {}", &player.name, &words_joined),
         })
-        .color(COLOR)
+        .color(Color::Yellow)
         .line();
         writer.tell(player.id, to_self);
 
@@ -59,7 +58,7 @@ pub fn chat(
             ChatCommand::Say => format!("{} says, \"{}\"", &player.name, &words_joined),
             ChatCommand::Emote => format!("{} {}", &player.name, &words_joined),
         })
-        .color(COLOR)
+        .color(Color::Yellow)
         .line();
         writer.tell_room_except(to_others, player.room_id, player.id, state);
     }

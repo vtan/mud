@@ -11,7 +11,7 @@ use crate::{
     },
     game_state::{GameState, MobInstance, MobTemplate, Player, Room},
     id::Id,
-    line::{span, Line},
+    line::{span, Color, Line},
     text_util::{are, plural},
 };
 use rand::{thread_rng, Rng};
@@ -41,9 +41,9 @@ pub fn on_player_connect(player: Player, writer: &mut EventWriter, state: &mut G
             Line::str(&format!("Welcome, {}!", &player.name)),
             Line::spans(vec![
                 span("Try to "),
-                span("look").color("white"),
+                span("look").color(Color::White),
                 span(" around, or check the "),
-                span("help").color("white"),
+                span("help").color(Color::White),
                 span(" to get your bearings."),
             ]),
             Line::str(&format_player_count(state.players.len() + 1)),
