@@ -1,8 +1,8 @@
 use crate::{
     event_writer::EventWriter,
     game_state::{
-        Condition, GameState, IdMap, MobInstance, Player, Room, RoomCommand, RoomDescription,
-        RoomExit, RoomObject, Statement,
+        player_ids_in_room, player_ids_in_room_except, Condition, GameState, IdMap, MobInstance,
+        Player, Room, RoomCommand, RoomDescription, RoomExit, RoomObject, Statement,
     },
     id::Id,
     line::{span, Color, Line},
@@ -140,15 +140,13 @@ pub fn run_room_command(
             }
             Statement::TellOthers(line) => {
                 let player_name = state.players.get(&self_id).map_or("", |p| &p.name);
-                writer.tell_room_except(
+                writer.tell_many(
+                    player_ids_in_room_except(&state.players, room_id, self_id),
                     Line::str(&format!("{} {}", player_name, line)),
-                    room_id,
-                    self_id,
-                    state,
                 );
             }
             Statement::TellRoom(line) => {
-                writer.tell_room(Line::str(line), room_id, state);
+                writer.tell_many(player_ids_in_room(&state.players, room_id), Line::str(line));
             }
             Statement::ResetRoomVarAfterSecs(var, secs, message) => {
                 state.scheduled_room_var_resets.insert(
@@ -212,5 +210,5 @@ pub fn describe_room(
             .push(span(" from here."))
     });
 
-    writer.tell_many(self_id, &lines);
+    writer.tell_lines(self_id, &lines);
 }

@@ -5,7 +5,7 @@ use regex::Regex;
 
 use crate::{
     event_writer::EventWriter,
-    game_state::{GameState, Player},
+    game_state::{player_ids_in_room_except, GameState, Player},
     line::{span, Color, Line},
 };
 
@@ -60,6 +60,9 @@ pub fn chat(
         })
         .color(Color::Yellow)
         .line();
-        writer.tell_room_except(to_others, player.room_id, player.id, state);
+        writer.tell_many(
+            player_ids_in_room_except(&state.players, player.room_id, player.id),
+            to_others,
+        );
     }
 }

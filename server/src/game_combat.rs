@@ -40,7 +40,7 @@ pub fn kill(
                 "{} attacks the {}.",
                 &player.name, mob_instance.template.name
             );
-            writer.tell_multi(
+            writer.tell_many(
                 player_ids_in_room_except(players, room.id, player_id),
                 span(&msg_others).color(Color::Cyan).line(),
             );
@@ -123,7 +123,7 @@ fn update_player_target(
             let msg_self = format!("You attack the {}.", mob.template.name);
             writer.tell(player.id, span(&msg_self).color(Color::LightCyan).line());
             let msg_others = format!("{} attacks the {}.", &player.name, mob.template.name);
-            writer.tell_multi(
+            writer.tell_many(
                 player_ids_in_room_except(players, room_id, player_id),
                 span(&msg_others).color(Color::Cyan).line(),
             );
@@ -146,7 +146,7 @@ pub fn attack_with_player(
         "{} hits the {} for {} damage.",
         player.name, mob.template.name, damage
     );
-    writer.tell_multi(
+    writer.tell_many(
         player_ids_in_room_except(players, room_id, player.id),
         span(&msg_others).color(Color::Cyan).line(),
     );
@@ -154,7 +154,7 @@ pub fn attack_with_player(
     let killed = damage >= mob.hp;
     if killed {
         let msg = format!("The {} dies.", mob.template.name);
-        writer.tell_multi(
+        writer.tell_many(
             player_ids_in_room(players, room_id),
             span(&msg).color(Color::DarkGrey).line(),
         );
@@ -204,6 +204,7 @@ pub fn tick_mob_attacks(writer: &mut EventWriter, state: &mut GameState) {
     let GameState { rooms, .. } = &*state;
     killed_players.into_iter().for_each(|(player_id, respawn_room_id)| {
         if let Some(room) = rooms.get(&respawn_room_id) {
+            // TODO: tell other players
             describe_room(player_id, room, writer, state);
         }
     });
@@ -244,7 +245,7 @@ fn update_mob_target(mob: &mut MobInstance, players: &IdMap<Player>, writer: &mu
                 span(&msg_target).color(Color::LightRed).line(),
             );
             let msg_others = format!("The {} attacks {}.", mob.template.name, new_target.name);
-            writer.tell_multi(
+            writer.tell_many(
                 player_ids_in_room_except(players, mob.room_id, new_target.id),
                 span(&msg_others).color(Color::Red).line(),
             );
@@ -277,7 +278,7 @@ fn attack_with_mob(
         "The {} hits {} for {} damage.",
         mob_name, target.name, damage
     );
-    writer.tell_multi(
+    writer.tell_many(
         player_ids_in_room_except(players, mob.room_id, target_id),
         span(&msg_others).color(Color::Red).line(),
     );
@@ -286,7 +287,7 @@ fn attack_with_mob(
         let msg_target = "You die.";
         writer.tell(target_id, span(msg_target).color(Color::DarkGrey).line());
         let msg_others = format!("{} dies.", target.name);
-        writer.tell_multi(
+        writer.tell_many(
             player_ids_in_room_except(players, mob.room_id, target_id),
             span(&msg_others).color(Color::DarkGrey).line(),
         );

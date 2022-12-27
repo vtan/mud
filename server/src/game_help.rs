@@ -24,5 +24,5 @@ lazy_static! {
 }
 
 pub fn help(player_id: Id<Player>, writer: &mut EventWriter) {
-    writer.tell_many(player_id, &HELP_LINES);
+    writer.tell_lines(player_id, &HELP_LINES);
 }

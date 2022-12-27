@@ -35,5 +35,5 @@ pub fn resolve_aliases(mut words: Vec<&str>) -> Vec<&str> {
 }
 
 pub fn alias(player_id: Id<Player>, writer: &mut EventWriter) {
-    writer.tell_many(player_id, &ALIAS_LINES);
+    writer.tell_lines(player_id, &ALIAS_LINES);
 }
