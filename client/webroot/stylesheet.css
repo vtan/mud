@@ -64,6 +64,26 @@ button:focus, input:focus {
   width: 100%;
 }
 
+.selfInfoBar {
+  margin-top: 1rem;
+  width: 100%;
+}
+
+.selfInfoBar .hp {
+  display: grid;
+  background-color: #303030;
+}
+
+.selfInfoBar .hp div {
+  grid-area: 1 / 1;
+  padding: 0.1rem 0.2rem;
+}
+
+.selfInfoBar .hp .filled {
+  transition: width 0.2s ease-in-out;
+  background-color: #a04040;
+}
+
 .loginForm {
   width: calc(min(100vw, 400px));
   margin: 4rem auto 0 auto;

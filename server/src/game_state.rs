@@ -90,6 +90,7 @@ pub struct Player {
     pub name: String,
     pub room_id: Id<Room>,
     pub hp: i32,
+    pub max_hp: i32,
     pub attack_offset: TickDuration,
     pub attack_target: Option<Id<MobInstance>>,
 }

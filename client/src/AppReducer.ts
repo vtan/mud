@@ -1,70 +1,79 @@
-import { Line, PlayerUpdate } from "./PlayerUpdate"
+import { EntityInfo, Line, PlayerUpdate } from "./PlayerUpdate";
 
 export interface AppState {
-  websocket: WebSocket | null,
-  lines: ReadonlyArray<StoredLine>,
-  nextLineId: number
+  websocket: WebSocket | null;
+  lines: ReadonlyArray<StoredLine>;
+  nextLineId: number;
+  selfInfo: EntityInfo | null;
 }
 
 export interface StoredLine {
-  type: "output" | "input",
-  id: number,
-  line: Line
+  type: "output" | "input";
+  id: number;
+  line: Line;
 }
 
 export const initialAppState: AppState = {
   websocket: null,
   lines: [],
-  nextLineId: 0
-}
+  nextLineId: 0,
+  selfInfo: null,
+};
 
 export type AppAction =
-  { type: "websocketConnected", websocket: WebSocket }
-  | { type: "websocketClosed", event: Event, isError: boolean }
-  | { type: "websocketMessage", message: string }
-  | { type: "commandSubmitted", command: string }
+  | { type: "websocketConnected"; websocket: WebSocket }
+  | { type: "websocketClosed"; event: Event; isError: boolean }
+  | { type: "websocketMessage"; message: string }
+  | { type: "commandSubmitted"; command: string };
 
-export type AppDispatch = (_: AppAction) => void
+export type AppDispatch = (_: AppAction) => void;
 
-const maxOutputBlocks = 1000
+const maxOutputBlocks = 1000;
 
 export function appReducer(state: AppState, action: AppAction): AppState {
   switch (action.type) {
     case "websocketConnected":
-      return { ...state, websocket: action.websocket }
+      return { ...state, websocket: action.websocket };
 
     case "websocketClosed":
-      console.warn("Websocket closed")
-      return initialAppState
+      console.warn("Websocket closed");
+      return initialAppState;
 
     case "websocketMessage": {
       try {
-        const update: PlayerUpdate = JSON.parse(action.message)
-        return applyPlayerUpdate(state, update)
+        const update: PlayerUpdate = JSON.parse(action.message);
+        return applyPlayerUpdate(state, update);
       } catch (ex) {
-        console.warn("Failed to parse message on websocket", ex)
-        return state
+        console.warn("Failed to parse message on websocket", ex);
+        return state;
       }
     }
 
     case "commandSubmitted":
       return addLine(state, {
         type: "input",
-        line: { spans: [ { text: action.command } ] }
-      })
+        line: { spans: [{ text: action.command }] },
+      });
   }
 }
 
-function applyPlayerUpdate(state: AppState, playerUpdate: PlayerUpdate): AppState {
-  return playerUpdate.lines.reduce(
+function applyPlayerUpdate(
+  state: AppState,
+  playerUpdate: PlayerUpdate
+): AppState {
+  state = playerUpdate.lines.reduce(
     (acc, line) => addLine(acc, { type: "output", line }),
     state
-  )
+  );
+  if (playerUpdate.selfInfo) {
+    state = { ...state, selfInfo: playerUpdate.selfInfo };
+  }
+  return state;
 }
 
 function addLine(state: AppState, newLine: Omit<StoredLine, "id">): AppState {
-  const line = { ...newLine, id: state.nextLineId }
-  const nextOutputBlockId = (state.nextLineId + 1) & 0xFFFFFFFF
-  const lines = [ ...state.lines, line ].slice(-maxOutputBlocks)
-  return { ...state, nextLineId: nextOutputBlockId, lines }
+  const line = { ...newLine, id: state.nextLineId };
+  const nextOutputBlockId = (state.nextLineId + 1) & 0xffffffff;
+  const lines = [...state.lines, line].slice(-maxOutputBlocks);
+  return { ...state, nextLineId: nextOutputBlockId, lines };
 }

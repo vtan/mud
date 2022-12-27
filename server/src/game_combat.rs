@@ -265,7 +265,7 @@ fn attack_with_mob(
     let target = players.get_mut(&target_id).unwrap_or_else(|| unreachable!());
     let killed = damage >= target.hp;
     if killed {
-        target.hp = 100;
+        target.hp = target.max_hp;
         target.attack_target = None;
     } else {
         target.hp -= damage;
@@ -274,6 +274,7 @@ fn attack_with_mob(
 
     let msg_target = format!("The {} hits you for {} damage.", mob_name, damage);
     writer.tell(target_id, span(&msg_target).color(Color::LightRed).line());
+    writer.hp_changed.insert(target_id);
     let msg_others = format!(
         "The {} hits {} for {} damage.",
         mob_name, target.name, damage

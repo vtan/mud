@@ -62,6 +62,7 @@ pub fn on_player_connect(player: Player, writer: &mut EventWriter, state: &mut G
     );
 
     state.players.insert(player_id, player);
+    writer.hp_changed.insert(player_id);
 }
 
 pub fn on_player_disconnect(

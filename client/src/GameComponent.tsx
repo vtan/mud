@@ -1,63 +1,86 @@
-import * as React from "react"
+import * as React from "react";
 
-import { AppDispatch, AppState, StoredLine } from "./AppReducer"
-import { sendCommand } from "./ServerConnection"
+import { AppDispatch, AppState, StoredLine } from "./AppReducer";
+import { sendCommand } from "./ServerConnection";
 
 export interface Props {
-  state: AppState,
-  dispatch: AppDispatch
+  state: AppState;
+  dispatch: AppDispatch;
 }
 
 export const GameComponent = ({ state, dispatch }: Props) => {
-  const { websocket, lines } = state
+  const { websocket, lines, selfInfo } = state;
 
-  const refLogContainer = React.useRef<HTMLDivElement>(null)
-  React.useEffect(
-    () => {
-      if (refLogContainer.current !== null) {
-        refLogContainer.current.scrollTop = refLogContainer.current.scrollHeight
-      }
-    },
-    [lines]
-  )
+  const refLogContainer = React.useRef<HTMLDivElement>(null);
+  React.useEffect(() => {
+    if (refLogContainer.current !== null) {
+      refLogContainer.current.scrollTop = refLogContainer.current.scrollHeight;
+    }
+  }, [lines]);
 
-  const [command, setCommand] = React.useState("")
+  const [command, setCommand] = React.useState("");
   const onCommandSubmit = React.useCallback(
-    e => {
-      e.preventDefault()
-      const trimmed = command.trim()
+    (e) => {
+      e.preventDefault();
+      const trimmed = command.trim();
       if (websocket && trimmed !== "") {
-        dispatch({ type: "commandSubmitted", command: trimmed })
-        sendCommand(trimmed, websocket)
-        setCommand("")
+        dispatch({ type: "commandSubmitted", command: trimmed });
+        sendCommand(trimmed, websocket);
+        setCommand("");
       }
     },
     [websocket, command]
-  )
+  );
   const onCommandChange = React.useCallback(
-    e => setCommand(e.target.value),
+    (e) => setCommand(e.target.value),
     []
-  )
+  );
 
-  return <div className="mainContainer">
+  return (
+    <div className="mainContainer">
       <div ref={refLogContainer} className="lineContainer">
-        { lines.map(line => <LineComponent key={line.id} {...line} />) }
+        {lines.map((line) => (
+          <LineComponent key={line.id} {...line} />
+        ))}
+      </div>
+      <div className="selfInfoBar">
+        {selfInfo && (
+          <div className="hp">
+            <div
+              className="filled"
+              style={{ width: `${(100 * selfInfo.hp) / selfInfo.maxHp}%` }}
+            />
+            <div>
+              HP: {selfInfo.hp}/{selfInfo.maxHp}
+            </div>
+          </div>
+        )}
       </div>
       <div className="commandInput">
         <form onSubmit={onCommandSubmit}>
-          <input onChange={onCommandChange} value={command} autoFocus className="commandFont" />
+          <input
+            onChange={onCommandChange}
+            value={command}
+            autoFocus
+            className="commandFont"
+          />
         </form>
       </div>
     </div>
-}
+  );
+};
 
 const LineComponent = (props: StoredLine) => {
-  const { type, line: { spans } } = props;
+  const {
+    type,
+    line: { spans },
+  } = props;
 
-  let className = "line" + (type === "input" ? " command" : " event")
-  return <div className={className}>
-    { type === "input" && "> " }
-    { spans.map((span, i) => {
+  let className = "line" + (type === "input" ? " command" : " event");
+  return (
+    <div className={className}>
+      {type === "input" && "> "}
+      {spans.map((span, i) => {
         let className = "";
         if (span.bold === true) {
           className += " bold";
@@ -65,7 +88,12 @@ const LineComponent = (props: StoredLine) => {
         if (span.color) {
           className += " " + span.color;
         }
-        return <span key={i} className={className}>{span.text}</span>
-    })}
-  </div>
-}
+        return (
+          <span key={i} className={className}>
+            {span.text}
+          </span>
+        );
+      })}
+    </div>
+  );
+};
