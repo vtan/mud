@@ -28,6 +28,12 @@ impl EventWriter {
         }
     }
 
+    pub fn tell_multi(&mut self, player_ids: impl Iterator<Item = Id<Player>>, line: Line) {
+        for player_id in player_ids {
+            self.tell(player_id, line.clone());
+        }
+    }
+
     pub fn tell_room(&mut self, line: Line, room_id: Id<Room>, state: &GameState) {
         state.players.values().for_each(|player| {
             if player.room_id == room_id {

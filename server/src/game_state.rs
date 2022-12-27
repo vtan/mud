@@ -57,6 +57,33 @@ impl GameState {
     }
 }
 
+pub fn player_ids_in_room(
+    players: &IdMap<Player>,
+    room_id: Id<Room>,
+) -> impl Iterator<Item = Id<Player>> + '_ {
+    players.values().filter_map(move |player| {
+        if player.room_id == room_id {
+            Some(player.id)
+        } else {
+            None
+        }
+    })
+}
+
+pub fn player_ids_in_room_except(
+    players: &IdMap<Player>,
+    room_id: Id<Room>,
+    except: Id<Player>,
+) -> impl Iterator<Item = Id<Player>> + '_ {
+    players.values().filter_map(move |player| {
+        if player.room_id == room_id && player.id != except {
+            Some(player.id)
+        } else {
+            None
+        }
+    })
+}
+
 #[derive(Clone, Debug)]
 pub struct Player {
     pub id: Id<Player>,

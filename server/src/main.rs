@@ -8,7 +8,6 @@ mod game_room;
 mod game_state;
 mod id;
 mod line;
-mod message_stash;
 mod named;
 mod server_actor;
 mod server_websocket;
