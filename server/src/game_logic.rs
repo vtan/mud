@@ -82,6 +82,7 @@ pub fn on_tick(writer: &mut EventWriter, state: &mut GameState) {
     state.ticks = state.ticks.increase();
     game_combat::tick_player_attacks(writer, state);
     game_combat::tick_mob_attacks(writer, state);
+    game_combat::tick_heal_players(writer, state);
     if state.ticks.is_large_tick() {
         on_large_tick(writer, state);
     }

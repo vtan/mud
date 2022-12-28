@@ -31,6 +31,10 @@ impl Tick {
 }
 
 impl TickDuration {
+    pub fn zero() -> TickDuration {
+        TickDuration(0)
+    }
+
     pub fn from_secs(secs: f32) -> TickDuration {
         TickDuration((secs / TICK_INTERVAL.as_secs_f32()) as i64)
     }

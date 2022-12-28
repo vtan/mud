@@ -1,3 +1,5 @@
+use std::collections::HashSet;
+
 use crate::{
     event_writer::EventWriter,
     game_room::{self, describe_room, RoomTarget},
@@ -12,6 +14,7 @@ use once_cell::sync::Lazy;
 use rand::{thread_rng, Rng};
 
 pub static PLAYER_ATTACK_FREQ: Lazy<TickDuration> = Lazy::new(|| TickDuration::from_secs(1.5));
+pub static PLAYER_HEAL_FREQ: Lazy<TickDuration> = Lazy::new(|| TickDuration::from_secs(3.0));
 
 pub fn kill(
     player_id: Id<Player>,
@@ -286,4 +289,21 @@ fn attack_with_mob(
         );
     }
     killed
+}
+
+pub fn tick_heal_players(writer: &mut EventWriter, state: &mut GameState) {
+    if state.ticks.is_on_division(*PLAYER_HEAL_FREQ, TickDuration::zero()) {
+        let players_in_combat = state
+            .mob_instances
+            .values()
+            .flat_map(|mob| mob.hostile_to.iter())
+            .collect::<HashSet<_>>();
+
+        for player in state.players.values_mut() {
+            if player.hp < player.max_hp && !players_in_combat.contains(&player.id) {
+                player.hp = (player.hp + player.max_hp / 20).min(player.max_hp);
+                writer.hp_changed.insert(player.id);
+            }
+        }
+    }
 }
