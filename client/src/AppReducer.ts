@@ -1,10 +1,10 @@
-import { EntityInfo, Line, PlayerUpdate } from "./PlayerUpdate";
+import { Line, PlayerUpdate, RoomInfo } from "./PlayerUpdate";
 
 export interface AppState {
   websocket: WebSocket | null;
   lines: ReadonlyArray<StoredLine>;
   nextLineId: number;
-  selfInfo: EntityInfo | null;
+  roomInfo: RoomInfo | null;
 }
 
 export interface StoredLine {
@@ -17,7 +17,7 @@ export const initialAppState: AppState = {
   websocket: null,
   lines: [],
   nextLineId: 0,
-  selfInfo: null,
+  roomInfo: null,
 };
 
 export type AppAction =
@@ -65,8 +65,8 @@ function applyPlayerUpdate(
     (acc, line) => addLine(acc, { type: "output", line }),
     state
   );
-  if (playerUpdate.selfInfo) {
-    state = { ...state, selfInfo: playerUpdate.selfInfo };
+  if (playerUpdate.roomInfo) {
+    state = { ...state, roomInfo: playerUpdate.roomInfo };
   }
   return state;
 }

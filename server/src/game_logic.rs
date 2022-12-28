@@ -62,7 +62,7 @@ pub fn on_player_connect(player: Player, writer: &mut EventWriter, state: &mut G
     );
 
     state.players.insert(player_id, player);
-    writer.hp_changed.insert(player_id);
+    writer.room_entities_changed.insert(room_id);
 }
 
 pub fn on_player_disconnect(
@@ -111,6 +111,7 @@ fn on_large_tick(writer: &mut EventWriter, state: &mut GameState) {
             to_respawn
                 .into_values()
                 .filter_map(|(room_id, mob_template_id)| {
+                    writer.room_entities_changed.insert(room_id);
                     state.mob_templates.get(&mob_template_id).map(|template| {
                         writer.tell_many(
                             player_ids_in_room(&state.players, room_id),
@@ -274,6 +275,8 @@ fn move_self(
     );
 
     describe_room(player_id, to_room, writer, state);
+    writer.room_entities_changed.insert(from_room_id);
+    writer.room_entities_changed.insert(to_room_id);
     Ok(())
 }
 

@@ -1,6 +1,6 @@
 export interface PlayerUpdate {
   lines: ReadonlyArray<Line>;
-  selfInfo?: EntityInfo;
+  roomInfo?: RoomInfo;
 }
 
 export interface Line {
@@ -13,7 +13,15 @@ export interface LineSpan {
   color?: string;
 }
 
+export interface RoomInfo {
+  selfPlayer: EntityInfo;
+  players: EntityInfo[];
+  mobs: EntityInfo[];
+}
+
 export interface EntityInfo {
+  id: string;
+  name: string;
   hp: number;
   maxHp: number;
 }

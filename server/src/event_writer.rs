@@ -1,10 +1,14 @@
 use std::collections::{HashMap, HashSet};
 
-use crate::{game_state::Player, id::Id, line::Line};
+use crate::{
+    game_state::{Player, Room},
+    id::Id,
+    line::Line,
+};
 
 pub struct EventWriter {
     pub lines: HashMap<Id<Player>, Vec<Line>>,
-    pub hp_changed: HashSet<Id<Player>>,
+    pub room_entities_changed: HashSet<Id<Room>>,
 }
 
 impl EventWriter {

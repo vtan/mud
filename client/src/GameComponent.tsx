@@ -1,6 +1,7 @@
 import * as React from "react";
 
 import { AppDispatch, AppState, StoredLine } from "./AppReducer";
+import { EntityInfo } from "./PlayerUpdate";
 import { sendCommand } from "./ServerConnection";
 
 export interface Props {
@@ -9,7 +10,7 @@ export interface Props {
 }
 
 export const GameComponent = ({ state, dispatch }: Props) => {
-  const { websocket, lines, selfInfo } = state;
+  const { websocket, lines, roomInfo } = state;
 
   const refLogContainer = React.useRef<HTMLDivElement>(null);
   React.useEffect(() => {
@@ -37,34 +38,44 @@ export const GameComponent = ({ state, dispatch }: Props) => {
   );
 
   return (
-    <div className="mainContainer">
-      <div ref={refLogContainer} className="lineContainer">
-        {lines.map((line) => (
-          <LineComponent key={line.id} {...line} />
-        ))}
-      </div>
-      <div className="selfInfoBar">
-        {selfInfo && (
-          <div className="hp">
-            <div
-              className="filled"
-              style={{ width: `${(100 * selfInfo.hp) / selfInfo.maxHp}%` }}
+    <div className="fullHeight">
+      <div className="mainContainer">
+        <div ref={refLogContainer} className="lineContainer">
+          {lines.map((line) => (
+            <LineComponent key={line.id} {...line} />
+          ))}
+        </div>
+        <div className="commandInput">
+          <form onSubmit={onCommandSubmit}>
+            <input
+              onChange={onCommandChange}
+              value={command}
+              autoFocus
+              className="commandFont"
             />
-            <div>
-              HP: {selfInfo.hp}/{selfInfo.maxHp}
-            </div>
+          </form>
+        </div>
+      </div>
+      <div className="sidebar">
+        {roomInfo && (
+          <div className="roomEntities">
+            <RoomEntityRow entity={roomInfo.selfPlayer} nameClass="white" />
+            {roomInfo.players.map((player) => (
+              <RoomEntityRow
+                key={`p-${player.id}`}
+                entity={player}
+                nameClass="light-cyan"
+              />
+            ))}
+            {roomInfo.mobs.map((mob) => (
+              <RoomEntityRow
+                key={`m-${mob.id}`}
+                entity={mob}
+                nameClass="orange"
+              />
+            ))}
           </div>
         )}
-      </div>
-      <div className="commandInput">
-        <form onSubmit={onCommandSubmit}>
-          <input
-            onChange={onCommandChange}
-            value={command}
-            autoFocus
-            className="commandFont"
-          />
-        </form>
       </div>
     </div>
   );
@@ -94,6 +105,25 @@ const LineComponent = (props: StoredLine) => {
           </span>
         );
       })}
+    </div>
+  );
+};
+
+const RoomEntityRow = (props: { entity: EntityInfo; nameClass: string }) => (
+  <div>
+    <div className={`name ${props.nameClass}`}>{props.entity.name}</div>
+    <Gauge filled={props.entity.hp} total={props.entity.maxHp} />
+  </div>
+);
+
+const Gauge = (props: { filled: number; total: number }) => {
+  const { filled, total } = props;
+  return (
+    <div className="gauge">
+      <div className="filled" style={{ width: `${(100 * filled) / total}%` }} />
+      <div>
+        {filled}/{total}
+      </div>
     </div>
   );
 };

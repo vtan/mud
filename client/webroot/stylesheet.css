@@ -1,5 +1,9 @@
 @import url('https://fonts.googleapis.com/css2?family=Ubuntu:wght@400;700&display=swap');
 
+div {
+  box-sizing: border-box;
+}
+
 body, button, input {
   font-family: 'Ubuntu', sans-serif;
   font-size: 16px;
@@ -16,18 +20,28 @@ button:focus, input:focus {
   box-shadow: 0 1px 1px lightcoral inset, 0 0 8px coral;
 }
 
-.mainContainer {
-  max-width: 600px;
+.fullHeight {
+  display: flex;
+  max-width: 800px;
   height: 100vh;
   margin: 0 auto;
+}
 
+.mainContainer {
+  margin-top: 1rem;
   display: flex;
+  flex-basis: 600px;
   flex-direction: column;
+}
+
+.sidebar {
+  margin-left: 1rem;
+  margin-top: 1rem;
+  flex: 1;
 }
 
 .lineContainer {
   flex: 1 1 auto;
-  margin-top: 1rem;
   overflow: auto;
 }
 
@@ -46,15 +60,15 @@ button:focus, input:focus {
   font-weight: 700;
 }
 
-.line .white { color: #ffffff; }
-.line .dark-grey { color: #808080; }
-.line .blue { color: #9090ff; }
-.line .yellow { color: #f0e000; }
-.line .orange { color: #ffa000; }
-.line .light-red { color: #ff6060; }
-.line .red { color: #e04040; }
-.line .light-cyan { color: #00c0c0; }
-.line .cyan { color: #009090; }
+.white { color: #ffffff; }
+.dark-grey { color: #808080; }
+.blue { color: #9090ff; }
+.yellow { color: #f0e000; }
+.orange { color: #ffa000; }
+.light-red { color: #ff6060; }
+.red { color: #e04040; }
+.light-cyan { color: #00c0c0; }
+.cyan { color: #009090; }
 
 .commandInput {
   margin: 1rem 0 2rem 0;
@@ -69,17 +83,33 @@ button:focus, input:focus {
   width: 100%;
 }
 
-.selfInfoBar .hp {
+.roomEntities > div {
+  display: flex;
+  align-items: end;
+  margin-bottom: 0.2rem;
+}
+
+.roomEntities > div > .name {
+  flex: 0 60%;
+  overflow: hidden;
+}
+
+.roomEntities > div > .gauge {
+  flex: 1;
+}
+
+.gauge {
   display: grid;
   background-color: #303030;
+  font-size: 80%;
 }
 
-.selfInfoBar .hp div {
+.gauge div {
   grid-area: 1 / 1;
-  padding: 0.1rem 0.2rem;
+  padding: 0.1rem 0.1rem;
 }
 
-.selfInfoBar .hp .filled {
+.gauge .filled {
   transition: width 0.2s ease-in-out;
   background-color: #a04040;
 }

@@ -9,7 +9,7 @@ use tokio::{sync::mpsc, time};
 use crate::{
     event_writer::EventWriter,
     game_combat, game_logic,
-    game_state::{GameState, LoadedGameState, Player},
+    game_state::{GameState, LoadedGameState, Player, Room},
     id::Id,
     line::Line,
     tick,
@@ -36,12 +36,22 @@ pub enum Message {
 #[serde(rename_all = "camelCase")]
 pub struct PlayerEvent {
     lines: Vec<Line>,
-    self_info: Option<EntityInfo>,
+    room_info: Option<RoomInfo>,
 }
 
-#[derive(Serialize, Debug)]
+#[derive(Serialize, Debug, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct RoomInfo {
+    self_player: EntityInfo,
+    players: Vec<EntityInfo>,
+    mobs: Vec<EntityInfo>,
+}
+
+#[derive(Serialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct EntityInfo {
+    id: String,
+    name: String,
     hp: i32,
     max_hp: i32,
 }
@@ -63,7 +73,8 @@ pub async fn run(
 
     let mut connections: HashMap<Id<Player>, _> = HashMap::new();
     let mut game_state = GameState::new(loaded_game_state);
-    let mut event_writer = EventWriter { lines: HashMap::new(), hp_changed: HashSet::new() };
+    let mut event_writer =
+        EventWriter { lines: HashMap::new(), room_entities_changed: HashSet::new() };
 
     game_logic::initialize(&mut game_state);
 
@@ -107,24 +118,19 @@ async fn send_player_events(
     connections: &HashMap<Id<Player>, mpsc::Sender<PlayerEvent>>,
     event_writer: &mut EventWriter,
 ) {
-    let player_ids = event_writer
-        .hp_changed
+    let room_infos = event_writer
+        .room_entities_changed
         .iter()
-        .chain(event_writer.lines.keys())
-        .collect::<HashSet<_>>();
+        .flat_map(|room_id| collect_room_info(*room_id, state))
+        .collect::<HashMap<_, _>>();
+
+    let player_ids = room_infos.keys().chain(event_writer.lines.keys()).collect::<HashSet<_>>();
 
     future::try_join_all(player_ids.into_iter().filter_map(|player_id| {
         if let Some(connection) = connections.get(player_id) {
             let lines = event_writer.lines.get(player_id).cloned().unwrap_or_default();
-            let self_info = if event_writer.hp_changed.contains(player_id) {
-                state
-                    .players
-                    .get(player_id)
-                    .map(|player| EntityInfo { hp: player.hp, max_hp: player.max_hp })
-            } else {
-                None
-            };
-            let event = PlayerEvent { lines, self_info };
+            let room_info = room_infos.get(player_id).cloned();
+            let event = PlayerEvent { lines, room_info };
             Some(connection.send(event))
         } else {
             None
@@ -134,5 +140,56 @@ async fn send_player_events(
     .unwrap();
 
     event_writer.lines.clear();
-    event_writer.hp_changed.clear();
+    event_writer.room_entities_changed.clear();
+}
+
+fn collect_room_info(room_id: Id<Room>, state: &GameState) -> Vec<(Id<Player>, RoomInfo)> {
+    let (player_ids, players): (Vec<_>, Vec<_>) = state
+        .players
+        .values()
+        .filter_map(|p| {
+            if p.room_id == room_id {
+                Some((
+                    p.id,
+                    EntityInfo {
+                        id: p.id.value.to_string(),
+                        name: p.name.clone(),
+                        hp: p.hp,
+                        max_hp: p.max_hp,
+                    },
+                ))
+            } else {
+                None
+            }
+        })
+        .unzip();
+    let mobs = state
+        .mob_instances
+        .values()
+        .filter_map(|m| {
+            if m.room_id == room_id {
+                Some(EntityInfo {
+                    id: m.id.value.to_string(),
+                    name: m.template.name.clone(),
+                    hp: m.hp,
+                    max_hp: m.template.max_hp,
+                })
+            } else {
+                None
+            }
+        })
+        .collect::<Vec<_>>();
+
+    players
+        .iter()
+        .cloned()
+        .enumerate()
+        .map(|(i, self_player)| {
+            let mut players = players.clone();
+            players.remove(i);
+            let mobs = mobs.clone();
+            let room_info = RoomInfo { self_player, players, mobs };
+            (player_ids[i], room_info)
+        })
+        .collect()
 }
