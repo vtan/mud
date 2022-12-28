@@ -187,19 +187,18 @@ pub fn tick_mob_attacks(writer: &mut EventWriter, state: &mut GameState) {
             if killed {
                 let respawn_at = Id::new(0);
                 killed_players.push((target_id, respawn_at));
+
+                if let Some(player) = players.get_mut(&target_id) {
+                    player.room_id = respawn_at;
+                }
+                mob_instances.values_mut().for_each(|mob| {
+                    if mob.hostile_to.remove(&target_id) && mob.attack_target == Some(target_id) {
+                        mob.attack_target = None;
+                    }
+                });
             }
         }
     }
-    killed_players.iter().for_each(|(player_id, respawn_room_id)| {
-        if let Some(player) = players.get_mut(player_id) {
-            player.room_id = *respawn_room_id;
-        }
-        mob_instances.values_mut().for_each(|mob| {
-            if mob.hostile_to.remove(player_id) && mob.attack_target == Some(*player_id) {
-                mob.attack_target = None;
-            }
-        });
-    });
 
     let GameState { rooms, .. } = &*state;
     killed_players.into_iter().for_each(|(player_id, respawn_room_id)| {
@@ -211,12 +210,7 @@ pub fn tick_mob_attacks(writer: &mut EventWriter, state: &mut GameState) {
 }
 
 fn update_mob_target(mob: &mut MobInstance, players: &IdMap<Player>, writer: &mut EventWriter) {
-    mob.hostile_to = mob
-        .hostile_to
-        .iter()
-        .filter(|player_id| players.contains_key(player_id))
-        .copied()
-        .collect();
+    mob.hostile_to.retain(|player_id| players.contains_key(player_id));
 
     if let Some(target_id) = mob.attack_target {
         match players.get(&target_id) {
