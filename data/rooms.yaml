@@ -1,6 +1,11 @@
 - id: 0
-  name: First room
-  description: This is the first room. There is nothing here.
+  name: Crossroads
+  description: >-
+    You stand at a crossroad, surrounded by dense foliage.
+    The air is still and quiet, except for the distant sound of birds singing in the trees.
+    To the east, you see the ruins of an ancient temple, its pillars and walls overgrown with vines.
+    To the north, a tall tower reaches towards the sky, its walls adorned with intricate carvings and strange symbols.
+    To the south, you see the pointed fenceposts of a graveyard, obscured by the thick fog that seems to linger around the area.
   exits:
     north: 6
     south: 2
@@ -44,14 +49,103 @@
       - tellRoom: "The orb flashes and turns crimson red."
 
 - id: 2
-  name: The Red Room
-  description: Just testing.
+  name: Graveyard gates
+  description: The large iron gates of the graveyard are wide open, a thick fog swirls beneath them.
   exits:
     north: 0
-    northeast: 3
+    south: 10
+    west: 11
+
+- id: 10
+  name: Graveyard path
+  description: >-
+    The graveyard is a vast and sprawling place, filled with rows upon rows of tombstones and graves.
+    The graves are ancient, their headstones worn and chipped.
+    The air is cold and damp, and you can hear the sound of leaves rustling in the wind.
+    To the west, the dark silhouette of a building emerges from the gray mist.
+  exits:
+    north: 2
+    west: 12
+  mobSpawns:
+  - mobTemplateId: 0
+  - mobTemplateId: 3
+
+- id: 11
+  name: Overgrown graveyard
+  description: >-
+    The tombstones are old and weather-beaten, their inscriptions faded and nearly illegible.
+    The grass is overgrown and wild, and the air is thick with the smell of decay.
+    The silence is deafening as your own footsteps echo through the graves.
+    To the south, the dark silhouette of a building emerges from the gray mist.
+  exits:
+    east: 2
+    south: 12
+  mobSpawns:
+  - mobTemplateId: 0
+  - mobTemplateId: 0
+  - mobTemplateId: 3
+
+- id: 12
+  name: Outside the chapel
+  description: >-
+    The chapel is small and unassuming, with a pointed roof and cracked stone walls.
+    The doors are rusted, the windows are broken and covered in cobwebs.
+    The graveyard is eerily quiet.
+    As you approach the chapel, you can feel a sense of unease wash over you.
+  exits:
+    east: 10
+    north: 11
+    south: 15
+    in: 13
   mobSpawns:
   - mobTemplateId: 0
   - mobTemplateId: 1
+
+- id: 13
+  name: Abandoned chapel
+  description: >-
+    As you enter the chapel, the floorboards creak beneath your feet.
+    The interior is dark and musty, you can barely make out the shapes of the pews and altar.
+    Cobwebs hang from the rafters, thick dust covers every surface.
+    There is a narrow staircase at the far end of the chapel.
+  exits:
+    out: 12
+    down: 14
+  mobSpawns:
+  - mobTemplateId: 0
+  - mobTemplateId: 0
+  - mobTemplateId: 0
+
+- id: 14
+  name: Crypt
+  description: >-
+    As you make your way deeper into the crypt, you pass rows of stone tombs and sarcophagi.
+    Some of them are adorned with intricate carvings, others are plain cracked stone.
+  exits:
+    up: 13
+  mobSpawns:
+  - mobTemplateId: 1
+  - mobTemplateId: 1
+
+- id: 15
+  name: Outside the gravedigger's shed
+  description: >-
+    A winding path covered in fallen leaves and mud leads you to a shed.
+    Its walls are made of rough wooden planks worn with age.
+    There is an empty coffin on the ground next to the empty doorway.
+  exits:
+    north: 12
+    in: 16
+
+- id: 16
+  name: Gravedigger's shed
+  description: >-
+    The center of the small shed is occupied by a broken table.
+    Besides a tool cabinet, the walls are lined with coffins.
+  exits:
+    out: 15
+  mobSpawns:
+  - mobTemplateId: 4
 
 - id: 3
   name: Temple of the Forgotten Frog Deity
@@ -60,7 +154,6 @@
     You can try and look at it.
   exits:
     west: 0
-    southwest: 2
     south: 4
   objects:
     - name: statue

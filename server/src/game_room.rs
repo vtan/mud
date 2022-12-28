@@ -7,7 +7,7 @@ use crate::{
     id::Id,
     line::{span, Color, Line},
     named::Named,
-    text_util::{and_span_vecs, and_spans},
+    text_util::and_span_vecs,
     tick::TickDuration,
 };
 
@@ -191,23 +191,27 @@ pub fn describe_room(
         .exits
         .iter()
         .filter_map(|(direction, exit)| match exit {
-            RoomExit::Static(_) => Some(direction),
-            RoomExit::Conditional { condition, .. } => {
+            RoomExit::Static(to) => Some((direction, to)),
+            RoomExit::Conditional { condition, to } => {
                 if eval_room_condition(condition, room.id, state) {
-                    Some(direction)
+                    Some((direction, to))
                 } else {
                     None
                 }
             }
         })
-        .map(|direction| span(direction).color(Color::Blue))
+        .map(|(direction, to_room_id)| {
+            let to_room_name = state.rooms.get(to_room_id).map_or("???", |r| &r.name);
+            vec![
+                span(direction).color(Color::Blue),
+                span(&format!(" to {to_room_name}")),
+            ]
+        })
         .collect();
     lines.push(if room.exits.is_empty() {
         Line::str("There are no exits here.")
     } else {
-        Line::str("You can go ")
-            .extend(and_spans(visible_exits))
-            .push(span(" from here."))
+        Line::str("You can go ").extend(and_span_vecs(visible_exits)).push(span("."))
     });
 
     writer.tell_lines(self_id, &lines);

@@ -1,16 +1,30 @@
 - id: 0
   name: skeleton
-  description: A reanimated skeleton wandering mindlessly and staring with empty sockets.
-  maxHp: 40
+  description: A reanimated skeleton wandering mindlessly, staring with empty eyesockets.
+  maxHp: 30
   damage: 10
   attackPeriod: 1.5
+
+- id: 3
+  name: zombie
+  description: A horrid walking corpse.
+  maxHp: 50
+  damage: 10
+  attackPeriod: 3
 
 - id: 1
   name: ghost
   description: A translucent humanoid figure with a chilly aura.
-  maxHp: 65
-  damage: 10
-  attackPeriod: 2
+  maxHp: 40
+  damage: 15
+  attackPeriod: 1.5
+
+- id: 4
+  name: vampire
+  description: A pale human figure with glassy eyes. Its sinister grin reveals sharp fangs hungry for the blood of the living.
+  maxHp: 50
+  damage: 18
+  attackPeriod: 1.5
 
 - id: 2
   name: young red dragon
@@ -19,10 +33,3 @@
   maxHp: 400
   damage: 250
   attackPeriod: 10
-
-- id: 3
-  name: zombie
-  description: A horrid walking corpse.
-  maxHp: 80
-  damage: 10
-  attackPeriod: 5
