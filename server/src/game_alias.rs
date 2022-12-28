@@ -1,5 +1,6 @@
+use once_cell::sync::Lazy;
+
 use crate::{event_writer::EventWriter, game_state::Player, id::Id, line::Line};
-use lazy_static::lazy_static;
 
 static ALIASES: &[(&str, &str)] = &[
     ("l", "look"),
@@ -17,12 +18,12 @@ static ALIASES: &[(&str, &str)] = &[
     ("d", "down"),
 ];
 
-lazy_static! {
-    static ref ALIAS_LINES: Vec<Line> = ALIASES
+static ALIAS_LINES: Lazy<Vec<Line>> = Lazy::new(|| {
+    ALIASES
         .iter()
         .map(|(alias, resolution)| Line::str(&format!("{} → {}", alias, resolution)))
-        .collect::<Vec<_>>();
-}
+        .collect::<Vec<_>>()
+});
 
 pub fn resolve_aliases(mut words: Vec<&str>) -> Vec<&str> {
     for (alias, resolution) in ALIASES {

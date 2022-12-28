@@ -1,6 +1,6 @@
 use std::ops::Add;
 
-use lazy_static::lazy_static;
+use once_cell::sync::Lazy;
 use regex::Regex;
 
 use crate::{
@@ -9,9 +9,8 @@ use crate::{
     line::{span, Color, Line},
 };
 
-lazy_static! {
-    static ref ILLEGAL_CHAT_REGEX: Regex = Regex::new(r"\p{Extended_Pictographic}").unwrap();
-}
+static ILLEGAL_CHAT_REGEX: Lazy<Regex> =
+    Lazy::new(|| Regex::new(r"\p{Extended_Pictographic}").unwrap());
 
 pub enum ChatCommand {
     Say,

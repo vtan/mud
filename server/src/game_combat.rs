@@ -8,12 +8,10 @@ use crate::{
     line::{span, Color, Line},
     tick::TickDuration,
 };
-use lazy_static::lazy_static;
+use once_cell::sync::Lazy;
 use rand::{thread_rng, Rng};
 
-lazy_static! {
-    pub static ref PLAYER_ATTACK_FREQ: TickDuration = TickDuration::from_secs(1.5);
-}
+pub static PLAYER_ATTACK_FREQ: Lazy<TickDuration> = Lazy::new(|| TickDuration::from_secs(1.5));
 
 pub fn kill(
     player_id: Id<Player>,
