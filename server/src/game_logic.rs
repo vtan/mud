@@ -131,14 +131,17 @@ pub fn on_command(
     writer: &mut EventWriter,
     state: &mut GameState,
 ) -> Result<(), String> {
-    let mut words: Vec<&str> = game_alias::resolve_aliases(command.split_whitespace().collect());
-    let command_head = words.get(0).ok_or("Empty command")?.to_ascii_lowercase();
-    words.remove(0);
+    let mut words: Vec<&str> = command.split_whitespace().collect();
+    let unresolved_head = words.get(0).ok_or("Empty command")?.to_ascii_lowercase();
+    words[0] = &unresolved_head;
+    words = game_alias::resolve_aliases(words);
+
+    let command_head = words.remove(0);
     let words = words;
 
     let player = state.players.get(&player_id).ok_or("Self player not found")?;
 
-    match command_head.as_str() {
+    match command_head {
         "look" => look(player, words, writer, state),
         "kill" => game_combat::kill(player.id, words, writer, state),
         "say" if !words.is_empty() => {
