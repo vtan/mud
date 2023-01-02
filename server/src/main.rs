@@ -11,6 +11,8 @@ mod line;
 mod mob;
 mod mob_coll;
 mod named;
+mod player;
+mod player_coll;
 mod server_actor;
 mod server_websocket;
 mod text_util;

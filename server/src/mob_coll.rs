@@ -50,9 +50,12 @@ impl MobColl {
         }
     }
 
-    pub fn remove(&mut self, id: &Id<Mob>) {
+    pub fn remove(&mut self, id: &Id<Mob>) -> Option<Mob> {
         if let Some(removed) = self.by_id.remove(id) {
             self.remove_from_room_index(*id, removed.room_id);
+            Some(removed)
+        } else {
+            None
         }
     }
 

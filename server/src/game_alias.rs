@@ -1,6 +1,6 @@
 use once_cell::sync::Lazy;
 
-use crate::{event_writer::EventWriter, game_state::Player, id::Id, line::Line};
+use crate::{event_writer::EventWriter, id::Id, line::Line, player::Player};
 
 static ALIASES: &[(&str, &str)] = &[
     ("l", "look"),

@@ -1,13 +1,13 @@
 use crate::{
     event_writer::EventWriter,
     game_state::{
-        player_ids_in_room, player_ids_in_room_except, Condition, GameState, Player, Room,
-        RoomCommand, RoomDescription, RoomExit, RoomObject, Statement,
+        Condition, GameState, Room, RoomCommand, RoomDescription, RoomExit, RoomObject, Statement,
     },
     id::{Id, IdMap},
     line::{span, Color, Line},
     mob::Mob,
     named::Named,
+    player::Player,
     text_util::and_span_vecs,
     tick::TickDuration,
 };
@@ -138,14 +138,14 @@ pub fn run_room_command(
                 writer.tell(self_id, Line::str(line));
             }
             Statement::TellOthers(line) => {
-                let player_name = state.players.get(&self_id).map_or("", |p| &p.name);
+                let player_name = state.players.by_id().get(&self_id).map_or("", |p| &p.name);
                 writer.tell_many(
-                    player_ids_in_room_except(&state.players, room_id, self_id),
+                    state.players.ids_in_room_except(room_id, self_id),
                     Line::str(&format!("{} {}", player_name, line)),
                 );
             }
             Statement::TellRoom(line) => {
-                writer.tell_many(player_ids_in_room(&state.players, room_id), Line::str(line));
+                writer.tell_many(state.players.ids_in_room(room_id), Line::str(line));
             }
             Statement::ResetRoomVarAfterSecs(var, secs, message) => {
                 state.scheduled_room_var_resets.insert(
@@ -171,6 +171,7 @@ pub fn describe_room(
     {
         let players = state
             .players
+            .by_id()
             .values()
             .filter(|player| player.id != self_id && player.room_id == room.id)
             .map(|player| vec![span(&player.name).color(Color::Blue)]);

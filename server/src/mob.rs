@@ -2,12 +2,7 @@ use std::collections::HashSet;
 
 use serde::Deserialize;
 
-use crate::{
-    game_state::{Player, Room},
-    id::Id,
-    named::Named,
-    tick::TickDuration,
-};
+use crate::{game_state::Room, id::Id, named::Named, player::Player, tick::TickDuration};
 
 #[derive(Clone, Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]

@@ -2,9 +2,9 @@ use once_cell::sync::Lazy;
 
 use crate::{
     event_writer::EventWriter,
-    game_state::Player,
     id::Id,
     line::{span, Color, Line},
+    player::Player,
 };
 
 #[rustfmt::skip]

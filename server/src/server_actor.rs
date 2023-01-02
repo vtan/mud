@@ -9,9 +9,10 @@ use tokio::{sync::mpsc, time};
 use crate::{
     event_writer::EventWriter,
     game_combat, game_logic,
-    game_state::{GameState, LoadedGameState, Player, Room},
+    game_state::{GameState, LoadedGameState, Room},
     id::Id,
     line::Line,
+    player::Player,
     tick,
 };
 
@@ -146,6 +147,7 @@ async fn send_player_events(
 fn collect_room_info(room_id: Id<Room>, state: &GameState) -> Vec<(Id<Player>, RoomInfo)> {
     let (player_ids, players): (Vec<_>, Vec<_>) = state
         .players
+        .by_id()
         .values()
         .filter_map(|p| {
             if p.room_id == room_id {

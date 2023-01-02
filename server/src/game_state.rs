@@ -7,7 +7,8 @@ use crate::{
     mob::{Mob, MobSpawn, MobTemplate},
     mob_coll::MobColl,
     named::Named,
-    tick::{Tick, TickDuration},
+    player_coll::PlayerColl,
+    tick::Tick,
 };
 
 pub struct LoadedGameState {
@@ -18,7 +19,7 @@ pub struct LoadedGameState {
 #[derive(Clone, Debug)]
 pub struct GameState {
     pub ticks: Tick,
-    pub players: IdMap<Player>,
+    pub players: PlayerColl,
     pub rooms: IdMap<Room>,
     pub room_vars: HashMap<(Id<Room>, String), i32>,
     pub scheduled_room_var_resets: BTreeMap<Tick, (Id<Room>, String, String)>,
@@ -35,7 +36,7 @@ impl GameState {
             rooms,
             mob_templates,
             ticks: Tick::zero(),
-            players: HashMap::new(),
+            players: PlayerColl::new(),
             room_vars: HashMap::new(),
             scheduled_room_var_resets: BTreeMap::new(),
             mobs: MobColl::new(),
@@ -55,44 +56,6 @@ impl GameState {
             self.room_vars.insert((room_id, var), value);
         }
     }
-}
-
-pub fn player_ids_in_room(
-    players: &IdMap<Player>,
-    room_id: Id<Room>,
-) -> impl Iterator<Item = Id<Player>> + '_ {
-    players.values().filter_map(move |player| {
-        if player.room_id == room_id {
-            Some(player.id)
-        } else {
-            None
-        }
-    })
-}
-
-pub fn player_ids_in_room_except(
-    players: &IdMap<Player>,
-    room_id: Id<Room>,
-    except: Id<Player>,
-) -> impl Iterator<Item = Id<Player>> + '_ {
-    players.values().filter_map(move |player| {
-        if player.room_id == room_id && player.id != except {
-            Some(player.id)
-        } else {
-            None
-        }
-    })
-}
-
-#[derive(Clone, Debug)]
-pub struct Player {
-    pub id: Id<Player>,
-    pub name: String,
-    pub room_id: Id<Room>,
-    pub hp: i32,
-    pub max_hp: i32,
-    pub attack_offset: TickDuration,
-    pub attack_target: Option<Id<Mob>>,
 }
 
 #[derive(Clone, Debug, Deserialize)]

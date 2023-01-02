@@ -5,8 +5,9 @@ use regex::Regex;
 
 use crate::{
     event_writer::EventWriter,
-    game_state::{player_ids_in_room_except, GameState, Player},
+    game_state::GameState,
     line::{span, Color, Line},
+    player::Player,
 };
 
 static ILLEGAL_CHAT_REGEX: Lazy<Regex> =
@@ -60,7 +61,7 @@ pub fn chat(
         .color(Color::Yellow)
         .line();
         writer.tell_many(
-            player_ids_in_room_except(&state.players, player.room_id, player.id),
+            state.players.ids_in_room_except(player.room_id, player.id),
             to_others,
         );
     }
