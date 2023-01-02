@@ -4,7 +4,7 @@ use serde::Deserialize;
 
 use crate::{
     id::{Id, IdMap, IdSource},
-    mob::{MobInstance, MobSpawn, MobTemplate},
+    mob::{Mob, MobSpawn, MobTemplate},
     mob_coll::MobColl,
     named::Named,
     tick::{Tick, TickDuration},
@@ -23,8 +23,8 @@ pub struct GameState {
     pub room_vars: HashMap<(Id<Room>, String), i32>,
     pub scheduled_room_var_resets: BTreeMap<Tick, (Id<Room>, String, String)>,
     pub mob_templates: IdMap<MobTemplate>,
-    pub mob_instances: MobColl,
-    pub mob_instance_id_source: IdSource<MobInstance>,
+    pub mobs: MobColl,
+    pub mob_id_source: IdSource<Mob>,
     pub scheduled_mob_spawns: BTreeMap<Tick, (Id<Room>, Id<MobTemplate>)>,
 }
 
@@ -38,8 +38,8 @@ impl GameState {
             players: HashMap::new(),
             room_vars: HashMap::new(),
             scheduled_room_var_resets: BTreeMap::new(),
-            mob_instances: MobColl::new(),
-            mob_instance_id_source: IdSource::new(0),
+            mobs: MobColl::new(),
+            mob_id_source: IdSource::new(0),
             scheduled_mob_spawns: BTreeMap::new(),
         }
     }
@@ -92,7 +92,7 @@ pub struct Player {
     pub hp: i32,
     pub max_hp: i32,
     pub attack_offset: TickDuration,
-    pub attack_target: Option<Id<MobInstance>>,
+    pub attack_target: Option<Id<Mob>>,
 }
 
 #[derive(Clone, Debug, Deserialize)]

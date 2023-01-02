@@ -6,7 +6,7 @@ use crate::{
     },
     id::{Id, IdMap},
     line::{span, Color, Line},
-    mob::MobInstance,
+    mob::Mob,
     named::Named,
     text_util::and_span_vecs,
     tick::TickDuration,
@@ -14,22 +14,20 @@ use crate::{
 
 pub enum RoomTarget<'a, 'b> {
     RoomObject { room_object: &'a RoomObject },
-    MobInstance { mob_instance: &'b MobInstance },
+    Mob { mob: &'b Mob },
 }
 
 pub fn resolve_target_in_room<'a, 'b>(
     target: &str,
     room: &'a Room,
-    mob_instances: &'b IdMap<MobInstance>,
+    mobs: &'b IdMap<Mob>,
 ) -> Option<RoomTarget<'a, 'b>> {
     use RoomTarget::*;
 
-    let mobs = mob_instances
+    let mobs = mobs
         .values()
-        .filter(|mob_instance| {
-            mob_instance.room_id == room.id && mob_instance.template.matches(target)
-        })
-        .map(|mob_instance| MobInstance { mob_instance });
+        .filter(|mob| mob.room_id == room.id && mob.template.matches(target))
+        .map(|mob| Mob { mob });
 
     let room_objects = room
         .objects
@@ -177,7 +175,7 @@ pub fn describe_room(
             .filter(|player| player.id != self_id && player.room_id == room.id)
             .map(|player| vec![span(&player.name).color(Color::Blue)]);
         let mobs = state
-            .mob_instances
+            .mobs
             .by_id()
             .values()
             .filter(|mob| mob.room_id == room.id)

@@ -40,8 +40,8 @@ impl Named for MobTemplate {
 }
 
 #[derive(Clone, Debug)]
-pub struct MobInstance {
-    pub id: Id<MobInstance>,
+pub struct Mob {
+    pub id: Id<Mob>,
     pub room_id: Id<Room>,
     pub template: MobTemplate,
     pub hp: i32,

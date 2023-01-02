@@ -12,7 +12,7 @@ use crate::{
     game_state::{player_ids_in_room, player_ids_in_room_except, GameState, Player, Room},
     id::Id,
     line::{span, Color, Line},
-    mob::{MobInstance, MobTemplate},
+    mob::{Mob, MobTemplate},
     text_util::{are, plural},
 };
 use rand::{thread_rng, Rng};
@@ -212,8 +212,7 @@ fn look(
         let words = words;
 
         let target_str = words.join(" ");
-        if let Some(target) = resolve_target_in_room(&target_str, room, state.mob_instances.by_id())
-        {
+        if let Some(target) = resolve_target_in_room(&target_str, room, state.mobs.by_id()) {
             match target {
                 RoomTarget::RoomObject { room_object: obj } => {
                     if let Some(desc) = eval_room_description(&obj.description, room.id, state) {
@@ -224,8 +223,8 @@ fn look(
                         Line::str(&format!("{} looks at the {}.", &player.name, &obj.name)),
                     );
                 }
-                RoomTarget::MobInstance { mob_instance } => {
-                    let mob = &mob_instance.template;
+                RoomTarget::Mob { mob } => {
+                    let mob = &mob.template;
                     writer.tell(player.id, Line::str(&mob.description));
                     writer.tell_many(
                         player_ids_in_room_except(&state.players, room.id, player.id),
@@ -306,14 +305,14 @@ fn roll_die(player: &Player, writer: &mut EventWriter, state: &GameState) -> Res
 }
 
 fn spawn_mobs(room_ids_templates: Vec<(Id<Room>, MobTemplate)>, state: &mut GameState) {
-    let GameState { mob_instances, mob_instance_id_source, .. } = state;
+    let GameState { mobs, mob_id_source, .. } = state;
     room_ids_templates
         .into_iter()
         .map(|(room_id, template)| {
-            let id = mob_instance_id_source.next();
+            let id = mob_id_source.next();
             let hp = template.max_hp;
             let attack_offset = template.attack_period.random_offset(&mut thread_rng());
-            MobInstance {
+            Mob {
                 id,
                 room_id,
                 template,
@@ -323,5 +322,5 @@ fn spawn_mobs(room_ids_templates: Vec<(Id<Room>, MobTemplate)>, state: &mut Game
                 attack_target: None,
             }
         })
-        .for_each(|mob| mob_instances.insert(mob));
+        .for_each(|mob| mobs.insert(mob));
 }

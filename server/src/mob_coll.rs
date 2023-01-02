@@ -2,12 +2,12 @@ use std::collections::HashMap;
 
 use crate::{
     id::{Id, IdMap},
-    mob::MobInstance,
+    mob::Mob,
 };
 
 #[derive(Debug, Clone)]
 pub struct MobColl {
-    by_id: IdMap<MobInstance>,
+    by_id: IdMap<Mob>,
 }
 
 impl MobColl {
@@ -15,17 +15,17 @@ impl MobColl {
         Self { by_id: HashMap::new() }
     }
 
-    pub fn by_id(&self) -> &IdMap<MobInstance> {
+    pub fn by_id(&self) -> &IdMap<Mob> {
         &self.by_id
     }
 
-    pub fn insert(&mut self, mob: MobInstance) {
+    pub fn insert(&mut self, mob: Mob) {
         if self.by_id.insert(mob.id, mob).is_some() {
             unreachable!();
         }
     }
 
-    pub fn modify<T>(&mut self, id: &Id<MobInstance>, f: impl FnOnce(&mut MobInstance) -> T) -> T {
+    pub fn modify<T>(&mut self, id: &Id<Mob>, f: impl FnOnce(&mut Mob) -> T) -> T {
         if let Some(mob) = self.by_id.get_mut(id) {
             f(mob)
         } else {
@@ -33,7 +33,7 @@ impl MobColl {
         }
     }
 
-    pub fn remove(&mut self, id: &Id<MobInstance>) {
+    pub fn remove(&mut self, id: &Id<Mob>) {
         self.by_id.remove(id);
     }
 }
