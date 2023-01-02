@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use std::hash::Hash;
 use std::marker::PhantomData;
 
@@ -8,6 +9,8 @@ pub struct Id<T> {
     pub value: u64,
     phantom: PhantomData<T>,
 }
+
+pub type IdMap<T> = HashMap<Id<T>, T>;
 
 impl<T> Id<T> {
     pub fn new(value: u64) -> Id<T> {

@@ -9,12 +9,10 @@ use crate::{
         describe_room, eval_room_description, resolve_room_specific_command,
         resolve_target_in_room, run_room_command, RoomSpecificCommand, RoomTarget,
     },
-    game_state::{
-        player_ids_in_room, player_ids_in_room_except, GameState, MobInstance, MobTemplate, Player,
-        Room,
-    },
+    game_state::{player_ids_in_room, player_ids_in_room_except, GameState, Player, Room},
     id::Id,
     line::{span, Color, Line},
+    mob::{MobInstance, MobTemplate},
     text_util::{are, plural},
 };
 use rand::{thread_rng, Rng};
@@ -214,7 +212,8 @@ fn look(
         let words = words;
 
         let target_str = words.join(" ");
-        if let Some(target) = resolve_target_in_room(&target_str, room, &state.mob_instances) {
+        if let Some(target) = resolve_target_in_room(&target_str, room, state.mob_instances.by_id())
+        {
             match target {
                 RoomTarget::RoomObject { room_object: obj } => {
                     if let Some(desc) = eval_room_description(&obj.description, room.id, state) {
@@ -308,19 +307,21 @@ fn roll_die(player: &Player, writer: &mut EventWriter, state: &GameState) -> Res
 
 fn spawn_mobs(room_ids_templates: Vec<(Id<Room>, MobTemplate)>, state: &mut GameState) {
     let GameState { mob_instances, mob_instance_id_source, .. } = state;
-    mob_instances.extend(room_ids_templates.into_iter().map(|(room_id, template)| {
-        let id = mob_instance_id_source.next();
-        let hp = template.max_hp;
-        let attack_offset = template.attack_period.random_offset(&mut thread_rng());
-        let instance = MobInstance {
-            id,
-            room_id,
-            template,
-            hp,
-            attack_offset,
-            hostile_to: HashSet::new(),
-            attack_target: None,
-        };
-        (id, instance)
-    }));
+    room_ids_templates
+        .into_iter()
+        .map(|(room_id, template)| {
+            let id = mob_instance_id_source.next();
+            let hp = template.max_hp;
+            let attack_offset = template.attack_period.random_offset(&mut thread_rng());
+            MobInstance {
+                id,
+                room_id,
+                template,
+                hp,
+                attack_offset,
+                hostile_to: HashSet::new(),
+                attack_target: None,
+            }
+        })
+        .for_each(|mob| mob_instances.insert(mob));
 }

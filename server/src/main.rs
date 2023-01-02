@@ -8,6 +8,8 @@ mod game_room;
 mod game_state;
 mod id;
 mod line;
+mod mob;
+mod mob_coll;
 mod named;
 mod server_actor;
 mod server_websocket;
@@ -16,8 +18,9 @@ mod tick;
 
 use std::{fs, net::SocketAddr};
 
-use game_state::{IdMap, LoadedGameState, MobTemplate, Room};
-use id::Id;
+use game_state::{LoadedGameState, Room};
+use id::{Id, IdMap};
+use mob::MobTemplate;
 use serde::de::DeserializeOwned;
 use server_websocket::{handle_connection, ConnectQuery};
 use tokio::sync::mpsc;

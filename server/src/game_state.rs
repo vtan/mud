@@ -1,14 +1,14 @@
-use std::collections::{BTreeMap, HashMap, HashSet};
+use std::collections::{BTreeMap, HashMap};
 
 use serde::Deserialize;
 
 use crate::{
-    id::{Id, IdSource},
+    id::{Id, IdMap, IdSource},
+    mob::{MobInstance, MobSpawn, MobTemplate},
+    mob_coll::MobColl,
     named::Named,
     tick::{Tick, TickDuration},
 };
-
-pub type IdMap<T> = HashMap<Id<T>, T>;
 
 pub struct LoadedGameState {
     pub rooms: IdMap<Room>,
@@ -23,7 +23,7 @@ pub struct GameState {
     pub room_vars: HashMap<(Id<Room>, String), i32>,
     pub scheduled_room_var_resets: BTreeMap<Tick, (Id<Room>, String, String)>,
     pub mob_templates: IdMap<MobTemplate>,
-    pub mob_instances: IdMap<MobInstance>,
+    pub mob_instances: MobColl,
     pub mob_instance_id_source: IdSource<MobInstance>,
     pub scheduled_mob_spawns: BTreeMap<Tick, (Id<Room>, Id<MobTemplate>)>,
 }
@@ -38,7 +38,7 @@ impl GameState {
             players: HashMap::new(),
             room_vars: HashMap::new(),
             scheduled_room_var_resets: BTreeMap::new(),
-            mob_instances: HashMap::new(),
+            mob_instances: MobColl::new(),
             mob_instance_id_source: IdSource::new(0),
             scheduled_mob_spawns: BTreeMap::new(),
         }
@@ -184,45 +184,4 @@ pub enum Statement {
     TellSelf(String),
     TellOthers(String),
     TellRoom(String),
-}
-
-#[derive(Clone, Debug, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct MobSpawn {
-    pub mob_template_id: Id<MobTemplate>,
-}
-
-#[derive(Clone, Debug, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct MobTemplate {
-    pub id: Id<MobTemplate>,
-    pub name: String,
-    #[serde(default)]
-    pub aliases: Vec<String>,
-    pub description: String,
-    pub max_hp: i32,
-    pub damage: i32,
-    #[serde(deserialize_with = "TickDuration::deserialize_from_secs")]
-    pub attack_period: TickDuration,
-}
-
-impl Named for MobTemplate {
-    fn get_name(&self) -> &String {
-        &self.name
-    }
-
-    fn get_aliases(&self) -> &[String] {
-        &self.aliases
-    }
-}
-
-#[derive(Clone, Debug)]
-pub struct MobInstance {
-    pub id: Id<MobInstance>,
-    pub room_id: Id<Room>,
-    pub template: MobTemplate,
-    pub hp: i32,
-    pub attack_offset: TickDuration,
-    pub hostile_to: HashSet<Id<Player>>,
-    pub attack_target: Option<Id<Player>>,
 }

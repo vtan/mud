@@ -3,11 +3,10 @@ use std::collections::HashSet;
 use crate::{
     event_writer::EventWriter,
     game_room::{self, describe_room, RoomTarget},
-    game_state::{
-        player_ids_in_room, player_ids_in_room_except, GameState, IdMap, MobInstance, Player,
-    },
-    id::Id,
+    game_state::{player_ids_in_room, player_ids_in_room_except, GameState, Player},
+    id::{Id, IdMap},
     line::{span, Color, Line},
+    mob::MobInstance,
     tick::TickDuration,
 };
 use once_cell::sync::Lazy;
@@ -29,7 +28,7 @@ pub fn kill(
 
     let args_joined = args.join(" ");
 
-    match game_room::resolve_target_in_room(&args_joined, room, mob_instances) {
+    match game_room::resolve_target_in_room(&args_joined, room, mob_instances.by_id()) {
         Some(RoomTarget::MobInstance { mob_instance }) => {
             let mob_id = mob_instance.id;
             player.attack_target = Some(mob_id);
@@ -46,11 +45,18 @@ pub fn kill(
                 span(&msg_others).color(Color::Cyan).line(),
             );
 
-            mob_instances.values_mut().for_each(|mob| {
-                if mob.room_id == room.id {
+            // TODO: use index
+            let mob_ids_in_room = mob_instances
+                .by_id()
+                .values()
+                .filter(|mob| mob.room_id == room.id)
+                .map(|mob| mob.id)
+                .collect::<Vec<_>>();
+            for mob_id in mob_ids_in_room {
+                mob_instances.modify(&mob_id, |mob| {
                     mob.hostile_to.insert(player_id);
-                }
-            });
+                });
+            }
         }
         Some(_) => {
             writer.tell(player_id, Line::str("You cannot kill that."));
@@ -74,18 +80,23 @@ pub fn tick_player_attacks(writer: &mut EventWriter, state: &mut GameState) {
         .collect::<Vec<_>>();
 
     for player_id in &players_on_this_tick {
-        update_player_target(*player_id, mob_instances, players, writer);
+        update_player_target(*player_id, mob_instances.by_id(), players, writer);
     }
 
     for player_id in &players_on_this_tick {
         let player = players.get(player_id).unwrap_or_else(|| unreachable!());
         if let Some(target_mob_id) = player.attack_target {
-            match mob_instances.get_mut(&target_mob_id) {
+            match mob_instances.by_id().get(&target_mob_id) {
                 Some(mob) if mob.room_id == player.room_id => {
-                    let killed = attack_with_player(player, mob, players, writer);
+                    let mob_id = mob.id;
+                    let mob_room_id = mob.room_id;
+                    let mob_template_id = mob.template.id;
+                    let killed = mob_instances.modify(&mob_id, |mob| {
+                        attack_with_player(player, mob, players, writer)
+                    });
                     if killed {
                         let respawn_at = *ticks + TickDuration::from_secs(30.0);
-                        scheduled_mob_spawns.insert(respawn_at, (mob.room_id, mob.template.id));
+                        scheduled_mob_spawns.insert(respawn_at, (mob_room_id, mob_template_id));
 
                         mob_instances.remove(&target_mob_id);
                         killed_mob_ids.push(target_mob_id);
@@ -170,18 +181,17 @@ pub fn tick_mob_attacks(writer: &mut EventWriter, state: &mut GameState) {
     let mut killed_players = vec![];
 
     let mobs_on_this_tick = mob_instances
+        .by_id()
         .values()
         .filter(|mob| ticks.is_on_division(mob.template.attack_period, mob.attack_offset))
         .map(|mob| mob.id)
         .collect::<Vec<_>>();
 
     for mob_id in mobs_on_this_tick {
-        update_mob_target(
-            mob_instances.get_mut(&mob_id).unwrap_or_else(|| unreachable!()),
-            players,
-            writer,
-        );
-        let mob = mob_instances.get(&mob_id).unwrap_or_else(|| unreachable!());
+        mob_instances.modify(&mob_id, |mob| {
+            update_mob_target(mob, players, writer);
+        });
+        let mob = mob_instances.by_id().get(&mob_id).unwrap_or_else(|| unreachable!());
 
         if let Some(target_id) = mob.attack_target {
             let killed = attack_with_mob(mob, target_id, players, writer);
@@ -192,11 +202,22 @@ pub fn tick_mob_attacks(writer: &mut EventWriter, state: &mut GameState) {
                 if let Some(player) = players.get_mut(&target_id) {
                     player.room_id = respawn_at;
                 }
-                mob_instances.values_mut().for_each(|mob| {
-                    if mob.hostile_to.remove(&target_id) && mob.attack_target == Some(target_id) {
-                        mob.attack_target = None;
-                    }
-                });
+
+                // TODO: use index
+                let mob_ids_in_room = mob_instances
+                    .by_id()
+                    .values()
+                    .filter(|m| m.room_id == mob.room_id)
+                    .map(|m| m.id)
+                    .collect::<Vec<_>>();
+                for mob_id in mob_ids_in_room {
+                    mob_instances.modify(&mob_id, |mob| {
+                        if mob.hostile_to.remove(&target_id) && mob.attack_target == Some(target_id)
+                        {
+                            mob.attack_target = None;
+                        }
+                    });
+                }
             }
         }
     }
@@ -296,6 +317,7 @@ pub fn tick_heal_players(writer: &mut EventWriter, state: &mut GameState) {
     if state.ticks.is_on_division(*PLAYER_HEAL_FREQ, TickDuration::zero()) {
         let players_in_combat = state
             .mob_instances
+            .by_id()
             .values()
             .flat_map(|mob| mob.hostile_to.iter())
             .collect::<HashSet<_>>();

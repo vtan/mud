@@ -1,11 +1,12 @@
 use crate::{
     event_writer::EventWriter,
     game_state::{
-        player_ids_in_room, player_ids_in_room_except, Condition, GameState, IdMap, MobInstance,
-        Player, Room, RoomCommand, RoomDescription, RoomExit, RoomObject, Statement,
+        player_ids_in_room, player_ids_in_room_except, Condition, GameState, Player, Room,
+        RoomCommand, RoomDescription, RoomExit, RoomObject, Statement,
     },
-    id::Id,
+    id::{Id, IdMap},
     line::{span, Color, Line},
+    mob::MobInstance,
     named::Named,
     text_util::and_span_vecs,
     tick::TickDuration,
@@ -177,6 +178,7 @@ pub fn describe_room(
             .map(|player| vec![span(&player.name).color(Color::Blue)]);
         let mobs = state
             .mob_instances
+            .by_id()
             .values()
             .filter(|mob| mob.room_id == room.id)
             .map(|mob| vec![span("a "), span(&mob.template.name).color(Color::Orange)]);

@@ -165,6 +165,7 @@ fn collect_room_info(room_id: Id<Room>, state: &GameState) -> Vec<(Id<Player>, R
         .unzip();
     let mobs = state
         .mob_instances
+        .by_id()
         .values()
         .filter_map(|m| {
             if m.room_id == room_id {
