@@ -1,4 +1,4 @@
-use std::collections::{hash_map::Entry, HashMap};
+use std::collections::{hash_map::Entry, HashMap, HashSet};
 
 use crate::{
     game_state::Room,
@@ -10,11 +10,16 @@ use crate::{
 pub struct MobColl {
     by_id: IdMap<Mob>,
     by_room_id: HashMap<Id<Room>, Vec<Id<Mob>>>,
+    room_info_changed: HashSet<Id<Room>>,
 }
 
 impl MobColl {
     pub fn new() -> Self {
-        Self { by_id: HashMap::new(), by_room_id: HashMap::new() }
+        Self {
+            by_id: HashMap::new(),
+            by_room_id: HashMap::new(),
+            room_info_changed: HashSet::new(),
+        }
     }
 
     pub fn by_id(&self) -> &IdMap<Mob> {
@@ -25,23 +30,37 @@ impl MobColl {
         &self.by_room_id
     }
 
+    pub fn room_info_changed(&self) -> &HashSet<Id<Room>> {
+        &self.room_info_changed
+    }
+
+    pub fn clear_room_info_changed(&mut self) {
+        self.room_info_changed.clear()
+    }
+
     pub fn insert(&mut self, mob: Mob) {
         let Mob { id, room_id, .. } = mob;
         if self.by_id.insert(id, mob).is_some() {
             unreachable!();
         }
         self.add_to_room_index(id, room_id);
+        self.room_info_changed.insert(room_id);
     }
 
     pub fn modify<T>(&mut self, id: &Id<Mob>, f: impl FnOnce(&mut Mob) -> T) -> T {
         if let Some(mob) = self.by_id.get_mut(id) {
             let before = mob.clone();
             let result = f(mob);
-            let Mob { room_id: after_room_id, .. } = *mob;
+            let Mob { room_id: after_room_id, hp: after_hp, .. } = *mob;
 
             if before.room_id != after_room_id {
                 self.remove_from_room_index(*id, before.room_id);
                 self.add_to_room_index(*id, after_room_id);
+                self.room_info_changed.insert(before.room_id);
+                self.room_info_changed.insert(after_room_id);
+            }
+            if before.hp != after_hp {
+                self.room_info_changed.insert(before.room_id);
             }
 
             result
@@ -53,6 +72,7 @@ impl MobColl {
     pub fn remove(&mut self, id: &Id<Mob>) -> Option<Mob> {
         if let Some(removed) = self.by_id.remove(id) {
             self.remove_from_room_index(*id, removed.room_id);
+            self.room_info_changed.insert(removed.room_id);
             Some(removed)
         } else {
             None

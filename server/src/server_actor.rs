@@ -74,8 +74,7 @@ pub async fn run(
 
     let mut connections: HashMap<Id<Player>, _> = HashMap::new();
     let mut game_state = GameState::new(loaded_game_state);
-    let mut event_writer =
-        EventWriter { lines: HashMap::new(), room_entities_changed: HashSet::new() };
+    let mut event_writer = EventWriter { lines: HashMap::new() };
 
     game_logic::initialize(&mut game_state);
 
@@ -110,18 +109,20 @@ pub async fn run(
                 game_logic::on_tick(&mut event_writer, &mut game_state);
             }
         }
-        send_player_events(&game_state, &connections, &mut event_writer).await;
+        send_player_events(&mut game_state, &connections, &mut event_writer).await;
     }
 }
 
 async fn send_player_events(
-    state: &GameState,
+    state: &mut GameState,
     connections: &HashMap<Id<Player>, mpsc::Sender<PlayerEvent>>,
     event_writer: &mut EventWriter,
 ) {
-    let room_infos = event_writer
-        .room_entities_changed
+    let room_infos = state
+        .players
+        .room_info_changed()
         .iter()
+        .chain(state.mobs.room_info_changed())
         .flat_map(|room_id| collect_room_info(*room_id, state))
         .collect::<HashMap<_, _>>();
 
@@ -141,7 +142,8 @@ async fn send_player_events(
     .unwrap();
 
     event_writer.lines.clear();
-    event_writer.room_entities_changed.clear();
+    state.players.clear_room_info_changed();
+    state.mobs.clear_room_info_changed();
 }
 
 fn collect_room_info(room_id: Id<Room>, state: &GameState) -> Vec<(Id<Player>, RoomInfo)> {

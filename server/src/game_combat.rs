@@ -220,7 +220,6 @@ pub fn tick_mob_attacks(writer: &mut EventWriter, state: &mut GameState) {
         if let Some(room) = rooms.get(&respawn_room_id) {
             // TODO: tell other players
             describe_room(player_id, room, writer, state);
-            writer.room_entities_changed.insert(respawn_room_id);
         }
     });
 }
@@ -285,7 +284,6 @@ fn attack_with_mob(
 
     let msg_target = format!("The {} hits you for {} damage.", mob_name, damage);
     writer.tell(target_id, span(&msg_target).color(Color::LightRed).line());
-    writer.room_entities_changed.insert(mob.room_id);
     let msg_others = format!(
         "The {} hits {} for {} damage.",
         mob_name, target_name, damage
@@ -307,7 +305,7 @@ fn attack_with_mob(
     killed
 }
 
-pub fn tick_heal_players(writer: &mut EventWriter, state: &mut GameState) {
+pub fn tick_heal_players(state: &mut GameState) {
     if state.ticks.is_on_division(*PLAYER_HEAL_FREQ, TickDuration::zero()) {
         let players_in_combat = state
             .mobs
@@ -322,7 +320,6 @@ pub fn tick_heal_players(writer: &mut EventWriter, state: &mut GameState) {
             .values()
             .filter_map(|player| {
                 if player.hp < player.max_hp && !players_in_combat.contains(&player.id) {
-                    writer.room_entities_changed.insert(player.room_id);
                     Some(player.id)
                 } else {
                     None

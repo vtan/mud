@@ -61,7 +61,6 @@ pub fn on_player_connect(player: Player, writer: &mut EventWriter, state: &mut G
     );
 
     state.players.insert(player);
-    writer.room_entities_changed.insert(room_id);
 }
 
 pub fn on_player_disconnect(
@@ -81,7 +80,7 @@ pub fn on_tick(writer: &mut EventWriter, state: &mut GameState) {
     state.ticks = state.ticks.increase();
     game_combat::tick_player_attacks(writer, state);
     game_combat::tick_mob_attacks(writer, state);
-    game_combat::tick_heal_players(writer, state);
+    game_combat::tick_heal_players(state);
     if state.ticks.is_large_tick() {
         on_large_tick(writer, state);
     }
@@ -107,7 +106,6 @@ fn on_large_tick(writer: &mut EventWriter, state: &mut GameState) {
             to_respawn
                 .into_values()
                 .filter_map(|(room_id, mob_template_id)| {
-                    writer.room_entities_changed.insert(room_id);
                     state.mob_templates.get(&mob_template_id).map(|template| {
                         writer.tell_many(
                             state.players.ids_in_room(room_id),
@@ -272,8 +270,6 @@ fn move_self(
     );
 
     describe_room(player_id, to_room, writer, state);
-    writer.room_entities_changed.insert(from_room_id);
-    writer.room_entities_changed.insert(to_room_id);
     Ok(())
 }
 
