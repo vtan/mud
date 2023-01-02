@@ -42,13 +42,7 @@ pub fn kill(
                 span(&msg_others).color(Color::Cyan).line(),
             );
 
-            // TODO: use index
-            let mob_ids_in_room = mobs
-                .by_id()
-                .values()
-                .filter(|mob| mob.room_id == room.id)
-                .map(|mob| mob.id)
-                .collect::<Vec<_>>();
+            let mob_ids_in_room = mobs.by_room_id().get(&room.id).cloned().unwrap_or_default();
             for mob_id in mob_ids_in_room {
                 mobs.modify(&mob_id, |mob| {
                     mob.hostile_to.insert(player_id);
@@ -200,13 +194,8 @@ pub fn tick_mob_attacks(writer: &mut EventWriter, state: &mut GameState) {
                     player.room_id = respawn_at;
                 }
 
-                // TODO: use index
-                let mob_ids_in_room = mobs
-                    .by_id()
-                    .values()
-                    .filter(|m| m.room_id == mob.room_id)
-                    .map(|m| m.id)
-                    .collect::<Vec<_>>();
+                let mob_ids_in_room =
+                    mobs.by_room_id().get(&mob.room_id).cloned().unwrap_or_default();
                 for mob_id in mob_ids_in_room {
                     mobs.modify(&mob_id, |mob| {
                         if mob.hostile_to.remove(&target_id) && mob.attack_target == Some(target_id)
